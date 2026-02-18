@@ -14,23 +14,23 @@ export const WALL_THICKNESS = 0.3;
 
 // ── Coin (3D cylinder) ──
 export const COIN_RADIUS = 0.4;
-export const COIN_HEIGHT = 0.12;
+export const COIN_HEIGHT = 0.22;
 export const COIN_MASS = 0.5;
-export const COIN_FRICTION = 0.4;
-export const COIN_RESTITUTION = 0.15;
-export const MAX_COINS = 300;
+export const COIN_FRICTION = 0.5;
+export const COIN_RESTITUTION = 0.1;
+export const MAX_COINS = 150;
 
 // ── Pusher ──
 export const PUSHER_WIDTH = TABLE_WIDTH;
 export const PUSHER_DEPTH = 1.2;
 export const PUSHER_HEIGHT = 0.6;
 export const PUSHER_Z_MIN = -TABLE_DEPTH / 2 + PUSHER_DEPTH / 2 + 0.1;
-export const PUSHER_Z_MAX = -2.0;
-export const PUSHER_SPEED = 0.06;
+export const PUSHER_Z_MAX = 1.0;
+export const PUSHER_SPEED = 0.05;
 
 // ── Drop Zone ──
-export const DROP_Y = 5;
-export const DROP_Z = -2;
+export const DROP_Y = 4;
+export const DROP_Z = -1;
 export const DROP_X_RANGE = 3.5;
 
 // ── Collection ──
@@ -44,16 +44,16 @@ export const CAMERA_FOV = 45;
 // ── Physics ──
 export const GRAVITY = { x: 0, y: -9.82, z: 0 };
 export const PHYSICS_TIMESTEP = 1 / 60;
-export const PHYSICS_MAX_SUBSTEPS = 3;
+export const PHYSICS_MAX_SUBSTEPS = 2;
 
 // ── Scoring ──
 export const COIN_SCORE_VALUE = 1;
 export const INITIAL_COIN_BALANCE = 1000;
-export const INITIAL_COINS_ON_TABLE = 50;
+export const INITIAL_COINS_ON_TABLE = 25;
 
 // ── Cooldown ──
 export const DROP_COOLDOWN_MS = 500;
-export const AUTO_DROP_INTERVAL_MS = 300;
+export const AUTO_DROP_INTERVAL_MS = 600;
 
 // ── Chain / Combo ──
 export const CHAIN_WINDOW_MS = 1500;
@@ -74,8 +74,8 @@ export const AUDIO_MASTER_VOLUME = 0.5;
 // ── Frenzy ──
 export const FRENZY_CHANCE = 1 / 50;
 export const FRENZY_DURATION_MS = 15000;
-export const FRENZY_COIN_INTERVAL_MS = 200;
-export const FRENZY_COINS_PER_TICK = 3;
+export const FRENZY_COIN_INTERVAL_MS = 400;
+export const FRENZY_COINS_PER_TICK = 2;
 
 // ══════════════════════════════════════
 // ── P2: Special Item Types ──
