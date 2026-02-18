@@ -71,26 +71,31 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
               ).join(', ')})`,
             }}
           >
-            {/* Slot labels — radial text, flipped in bottom half to stay readable */}
+            {/* Slot labels — each label positioned along its slice, reading outward from center */}
             {slots.map((slot, i) => {
               const sliceAngle = 360 / slots.length;
               const midAngle = i * sliceAngle + sliceAngle / 2;
-              const isBottom = midAngle > 90 && midAngle < 270;
-              const textAngle = isBottom ? midAngle + 180 : midAngle;
-              const radius = isBottom ? 55 : 75;
+              // Place label at ~65% radius from center
+              const radius = 70;
               const rad = ((midAngle - 90) * Math.PI) / 180;
               const x = 120 + Math.cos(rad) * radius;
               const y = 120 + Math.sin(rad) * radius;
               const label = PRIZE_LABELS_ZH[slot.id] || slot.label;
 
+              // Rotate text so it reads outward; for bottom half, add 180 to keep text upright
+              // Since this is inside the rotating wheel, midAngle is relative to the wheel itself
+              // We always orient text radially outward
+              const textRotation = midAngle;
+
               return (
                 <div
                   key={i}
-                  className="absolute text-[9px] font-bold text-white pointer-events-none"
+                  className="absolute font-bold text-white pointer-events-none"
                   style={{
                     left: `${x}px`,
                     top: `${y}px`,
-                    transform: `translate(-50%, -50%) rotate(${textAngle}deg)`,
+                    fontSize: '9px',
+                    transform: `translate(-50%, -50%) rotate(${textRotation}deg)`,
                     textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)',
                     whiteSpace: 'nowrap',
                   }}

@@ -22,31 +22,23 @@ export const COIN_FRICTION = 0.5;
 export const COIN_RESTITUTION = 0.1;
 export const MAX_COINS = 999;
 
-// ── Back Pusher ──
-export const BACK_PUSHER_WIDTH = TABLE_WIDTH;
-export const BACK_PUSHER_DEPTH = 1.2;
-export const BACK_PUSHER_HEIGHT = 0.8;
-export const BACK_PUSHER_Z_MIN = -TABLE_DEPTH / 2 + BACK_PUSHER_DEPTH / 2 + 0.2;
-export const BACK_PUSHER_Z_MAX = -1.5;
-export const BACK_PUSHER_SPEED = 0.04;
+// ── Pusher (single) ──
+export const PUSHER_WIDTH = TABLE_WIDTH;
+export const PUSHER_DEPTH = 1.2;
+export const PUSHER_HEIGHT = 1.0;
+export const PUSHER_Z_MIN = -4.5;
+export const PUSHER_Z_MAX = 5.0;
+export const PUSHER_SPEED = 0.05;
 
-// ── Front Pusher ──
-export const FRONT_PUSHER_WIDTH = TABLE_WIDTH;
-export const FRONT_PUSHER_DEPTH = 1.2;
-export const FRONT_PUSHER_HEIGHT = 1.0;
-export const FRONT_PUSHER_Z_MIN = -0.5;
-export const FRONT_PUSHER_Z_MAX = 5.0;
-export const FRONT_PUSHER_SPEED = 0.05;
+// ── Back Ledge (narrow shelf behind pusher for coin drop) ──
+export const LEDGE_WIDTH = TABLE_WIDTH;
+export const LEDGE_DEPTH = 0.5;          // < half coin diameter (0.6), coins slide off
+export const LEDGE_HEIGHT = 0.6;         // raised platform
+export const LEDGE_Z = -TABLE_DEPTH / 2 + LEDGE_DEPTH / 2 + 0.3;  // near back wall
 
-// Legacy aliases (used by EffectManager)
-export const PUSHER_WIDTH = FRONT_PUSHER_WIDTH;
-export const PUSHER_DEPTH = FRONT_PUSHER_DEPTH;
-export const PUSHER_HEIGHT = FRONT_PUSHER_HEIGHT;
-export const PUSHER_SPEED = FRONT_PUSHER_SPEED;
-
-// ── Drop Zone ──
+// ── Drop Zone ── (above the back ledge)
 export const DROP_Y = 4;
-export const DROP_Z = -1;
+export const DROP_Z = LEDGE_Z;
 export const DROP_X_RANGE = 3.5;
 
 // ── Collection ──

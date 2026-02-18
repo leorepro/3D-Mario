@@ -31,14 +31,10 @@ export class Renderer3D {
     this.tableMesh = this.createTable();
     this.wallMeshes = this.createWalls();
     this.createCollectionTray();
-    this.frontPusherMesh = this.createPusherMesh(
-      C.FRONT_PUSHER_WIDTH, C.FRONT_PUSHER_HEIGHT, C.FRONT_PUSHER_DEPTH, 0xc4713b
+    this.pusherMesh = this.createPusherMesh(
+      C.PUSHER_WIDTH, C.PUSHER_HEIGHT, C.PUSHER_DEPTH, 0xc4713b
     );
-    this.backPusherMesh = this.createPusherMesh(
-      C.BACK_PUSHER_WIDTH, C.BACK_PUSHER_HEIGHT, C.BACK_PUSHER_DEPTH, 0x9e5a2a
-    );
-    // Legacy alias
-    this.pusherMesh = this.frontPusherMesh;
+    this.ledgeMesh = this.createLedge();
 
     // Coin mesh management
     this.coinMeshes = new Map();
@@ -347,6 +343,35 @@ export class Renderer3D {
     // Store original width for scaling reference
     group.userData.baseWidth = width;
 
+    this.scene.add(group);
+    return group;
+  }
+
+  createLedge() {
+    const group = new THREE.Group();
+
+    // Main ledge body
+    const geo = new THREE.BoxGeometry(C.LEDGE_WIDTH, C.LEDGE_HEIGHT, C.LEDGE_DEPTH);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x8b6914,
+      metalness: 0.3,
+      roughness: 0.7,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+
+    // Gold trim on top edge
+    const trimGeo = new THREE.BoxGeometry(C.LEDGE_WIDTH + 0.05, 0.06, C.LEDGE_DEPTH + 0.05);
+    const trimMat = new THREE.MeshStandardMaterial({
+      color: 0xd4a44a, metalness: 0.6, roughness: 0.3,
+    });
+    const trim = new THREE.Mesh(trimGeo, trimMat);
+    trim.position.y = C.LEDGE_HEIGHT / 2 + 0.03;
+    group.add(trim);
+
+    group.position.set(0, C.LEDGE_HEIGHT / 2, C.LEDGE_Z);
     this.scene.add(group);
     return group;
   }
@@ -779,9 +804,9 @@ export class Renderer3D {
 
   // ─── Pusher width for effects ───
   setPusherWidth(newWidth) {
-    const baseWidth = this.frontPusherMesh.userData.baseWidth || C.FRONT_PUSHER_WIDTH;
+    const baseWidth = this.pusherMesh.userData.baseWidth || C.PUSHER_WIDTH;
     const scale = newWidth / baseWidth;
-    this.frontPusherMesh.scale.x = scale;
+    this.pusherMesh.scale.x = scale;
   }
 
   // ─── Boss Bowser mesh ───
@@ -892,15 +917,10 @@ export class Renderer3D {
     const dt = gameState.dt || 0.016;
     this._time += dt;
 
-    // Sync front pusher
-    if (gameState.frontPusherBody) {
-      this.frontPusherMesh.position.copy(gameState.frontPusherBody.position);
-      this.frontPusherMesh.quaternion.copy(gameState.frontPusherBody.quaternion);
-    }
-    // Sync back pusher
-    if (gameState.backPusherBody) {
-      this.backPusherMesh.position.copy(gameState.backPusherBody.position);
-      this.backPusherMesh.quaternion.copy(gameState.backPusherBody.quaternion);
+    // Sync pusher
+    if (gameState.pusherBody) {
+      this.pusherMesh.position.copy(gameState.pusherBody.position);
+      this.pusherMesh.quaternion.copy(gameState.pusherBody.quaternion);
     }
 
     // Sync coins

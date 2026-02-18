@@ -26,26 +26,16 @@ export class GameEngine {
     // 3D Physics world
     this.physics = new PhysicsWorld3D();
 
-    // Dual pusher system
-    this.backPusher = new PusherController3D(this.physics, {
-      width: C.BACK_PUSHER_WIDTH,
-      height: C.BACK_PUSHER_HEIGHT,
-      depth: C.BACK_PUSHER_DEPTH,
-      zMin: C.BACK_PUSHER_Z_MIN,
-      zMax: C.BACK_PUSHER_Z_MAX,
-      speed: C.BACK_PUSHER_SPEED,
+    // Single pusher system
+    this.pusher = new PusherController3D(this.physics, {
+      width: C.PUSHER_WIDTH,
+      height: C.PUSHER_HEIGHT,
+      depth: C.PUSHER_DEPTH,
+      zMin: C.PUSHER_Z_MIN,
+      zMax: C.PUSHER_Z_MAX,
+      speed: C.PUSHER_SPEED,
       startDirection: 1,
     });
-    this.frontPusher = new PusherController3D(this.physics, {
-      width: C.FRONT_PUSHER_WIDTH,
-      height: C.FRONT_PUSHER_HEIGHT,
-      depth: C.FRONT_PUSHER_DEPTH,
-      zMin: C.FRONT_PUSHER_Z_MIN,
-      zMax: C.FRONT_PUSHER_Z_MAX,
-      speed: C.FRONT_PUSHER_SPEED,
-      startDirection: -1,
-    });
-    this.pusher = this.frontPusher; // backward compat for EffectManager
 
     // Coin manager
     this.coinManager = new CoinManager3D(this.physics);
@@ -132,9 +122,8 @@ export class GameEngine {
     // Step physics
     this.physics.step(dt);
 
-    // Update both pushers
-    this.backPusher.update();
-    this.frontPusher.update();
+    // Update pusher
+    this.pusher.update();
 
     // Update effects (auto-expire)
     this.effectManager.update(this);
@@ -155,8 +144,7 @@ export class GameEngine {
 
     // Render
     this.renderer.render({
-      frontPusherBody: this.frontPusher.getBody(),
-      backPusherBody: this.backPusher.getBody(),
+      pusherBody: this.pusher.getBody(),
       coins: this.coinManager.getCoins(),
       items: this.itemManager.getItems(),
       dropX: this.dropX,
@@ -416,17 +404,15 @@ export class GameEngine {
     this.haptic.frenzy();
     this.saveManager.setFrenzyTriggered();
 
-    // Speed up both pushers during frenzy
+    // Speed up pusher during frenzy
     this.effectManager.addEffect({
       type: 'frenzy_speed',
       duration: dur,
       apply: (engine) => {
-        engine.frontPusher.setSpeed(C.FRONT_PUSHER_SPEED * 2);
-        engine.backPusher.setSpeed(C.BACK_PUSHER_SPEED * 2);
+        engine.pusher.setSpeed(C.PUSHER_SPEED * 2);
       },
       remove: (engine) => {
-        engine.frontPusher.resetSpeed();
-        engine.backPusher.resetSpeed();
+        engine.pusher.resetSpeed();
       },
     }, this);
 
@@ -564,25 +550,15 @@ export class GameEngine {
     const xMax = C.TABLE_WIDTH / 2 - C.COIN_RADIUS * 2;
 
     const total = C.INITIAL_COINS_ON_TABLE;
-    const frontZoneCount = Math.floor(total * 0.4);
-    const backZoneCount = Math.floor(total * 0.3);
-    const edgeCount = total - frontZoneCount - backZoneCount;
+    const pusherFrontZ = C.PUSHER_Z_MAX + C.PUSHER_DEPTH / 2;
+    const mainCount = Math.floor(total * 0.6);
+    const edgeCount = total - mainCount;
 
-    // Front pusher zone: coins between front pusher and table edge
-    const frontPusherFrontZ = C.FRONT_PUSHER_Z_MAX + C.FRONT_PUSHER_DEPTH / 2;
-    for (let i = 0; i < frontZoneCount; i++) {
+    // Main zone: coins between pusher max and table edge
+    for (let i = 0; i < mainCount; i++) {
       const x = xMin + Math.random() * (xMax - xMin);
       const y = C.COIN_HEIGHT / 2 + 0.1 + Math.random() * 0.5;
-      const z = frontPusherFrontZ + 0.3 + Math.random() * (tableEdgeZ - frontPusherFrontZ - 1.5);
-      this.coinManager.spawnCoin(x, y, z);
-    }
-
-    // Back pusher zone: coins between back pusher and front pusher
-    const backPusherFrontZ = C.BACK_PUSHER_Z_MAX + C.BACK_PUSHER_DEPTH / 2;
-    for (let i = 0; i < backZoneCount; i++) {
-      const x = xMin + Math.random() * (xMax - xMin);
-      const y = C.COIN_HEIGHT / 2 + 0.1 + Math.random() * 0.5;
-      const z = backPusherFrontZ + 0.3 + Math.random() * (C.FRONT_PUSHER_Z_MIN - backPusherFrontZ - 1);
+      const z = pusherFrontZ + 0.3 + Math.random() * (tableEdgeZ - pusherFrontZ - 1.5);
       this.coinManager.spawnCoin(x, y, z);
     }
 

@@ -7,8 +7,8 @@ export class PusherController3D {
       width = C.PUSHER_WIDTH,
       height = C.PUSHER_HEIGHT,
       depth = C.PUSHER_DEPTH,
-      zMin = C.FRONT_PUSHER_Z_MIN,
-      zMax = C.FRONT_PUSHER_Z_MAX,
+      zMin = C.PUSHER_Z_MIN,
+      zMax = C.PUSHER_Z_MAX,
       speed = C.PUSHER_SPEED,
       startDirection = 1,
     } = config;
