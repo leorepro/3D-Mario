@@ -134,6 +134,118 @@ export class AudioManager {
     this._playTone(80, 0.05, 'sawtooth', 0.02);
   }
 
+  // ═══════════ ITEM SFX ═══════════
+
+  /** Play SFX for item collection based on item type */
+  playItemCollected(itemType) {
+    switch (itemType) {
+      case 'question_block':
+        // Mystery jingle — ascending three-note
+        this._playTone(660, 0.12, 'square', 0.25);
+        setTimeout(() => this._playTone(880, 0.12, 'square', 0.22), 80);
+        setTimeout(() => this._playTone(1320, 0.2, 'square', 0.2), 160);
+        break;
+
+      case 'star':
+        // Star power — fast arpeggio sparkle
+        [880, 1100, 1320, 1760, 2200].forEach((f, i) => {
+          setTimeout(() => this._playTone(f, 0.15, 'sine', 0.2), i * 50);
+        });
+        break;
+
+      case 'mushroom':
+        // Power-up — bwop ascending
+        this._playTone(330, 0.15, 'sine', 0.3);
+        setTimeout(() => this._playTone(440, 0.15, 'sine', 0.28), 80);
+        setTimeout(() => this._playTone(660, 0.2, 'sine', 0.25), 160);
+        break;
+
+      case 'coin_tower':
+        // Coin cascade — rapid ascending pings
+        for (let i = 0; i < 6; i++) {
+          setTimeout(() => this._playTone(1000 + i * 200, 0.1, 'sine', 0.18), i * 40);
+        }
+        break;
+
+      case 'fire_flower':
+        // Fire whoosh — noise + high tone
+        this._playNoise(0.2, 0.12);
+        this._playTone(1500, 0.2, 'sawtooth', 0.15);
+        setTimeout(() => this._playTone(2000, 0.15, 'sine', 0.1), 100);
+        break;
+
+      case 'green_pipe':
+        // Pipe warp — descending whoosh
+        this._playTone(800, 0.15, 'sine', 0.25);
+        setTimeout(() => this._playTone(500, 0.15, 'sine', 0.22), 80);
+        setTimeout(() => this._playTone(300, 0.2, 'triangle', 0.18), 160);
+        break;
+
+      case 'poison_mushroom':
+        // Danger — descending minor tone
+        this._playTone(440, 0.12, 'sawtooth', 0.2);
+        setTimeout(() => this._playTone(330, 0.12, 'sawtooth', 0.18), 80);
+        setTimeout(() => this._playTone(220, 0.2, 'sawtooth', 0.15), 160);
+        break;
+
+      default:
+        this.playCoinCollected();
+    }
+  }
+
+  /** Level up — triumphant fanfare */
+  playLevelUp() {
+    [523, 659, 784, 1047].forEach((f, i) => {
+      setTimeout(() => {
+        this._playTone(f, 0.25, 'square', 0.22);
+        this._playTone(f * 1.5, 0.2, 'sine', 0.1);
+      }, i * 100);
+    });
+  }
+
+  /** Frenzy start — exciting rising sweep */
+  playFrenzyStart() {
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => this._playTone(400 + i * 150, 0.12, 'square', 0.2), i * 40);
+    }
+  }
+
+  /** Boss hit — heavy impact */
+  playBossHit() {
+    this._playTone(150, 0.2, 'sawtooth', 0.3);
+    this._playNoise(0.15, 0.15);
+  }
+
+  /** Boss defeated — victory fanfare */
+  playBossDefeated() {
+    [523, 659, 784, 1047, 1319].forEach((f, i) => {
+      setTimeout(() => {
+        this._playTone(f, 0.3, 'square', 0.25);
+        this._playTone(f * 1.5, 0.2, 'sine', 0.12);
+      }, i * 120);
+    });
+  }
+
+  /** Wheel spin tick */
+  playWheelTick() {
+    this._playTone(1200, 0.05, 'sine', 0.15);
+  }
+
+  /** Wheel prize won */
+  playWheelPrize() {
+    this._playTone(880, 0.15, 'sine', 0.3);
+    setTimeout(() => this._playTone(1100, 0.15, 'sine', 0.25), 100);
+    setTimeout(() => this._playTone(1320, 0.25, 'sine', 0.2), 200);
+  }
+
+  /** Achievement unlocked */
+  playAchievement() {
+    this._playTone(880, 0.1, 'square', 0.2);
+    setTimeout(() => this._playTone(1100, 0.1, 'square', 0.18), 60);
+    setTimeout(() => this._playTone(1320, 0.15, 'square', 0.15), 120);
+    setTimeout(() => this._playTone(1760, 0.2, 'sine', 0.12), 180);
+  }
+
   setVolume(v) {
     if (this.masterGain) {
       this.masterGain.gain.value = Math.max(0, Math.min(1, v));

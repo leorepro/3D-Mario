@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as C from './constants.js';
 import { ParticleSystem } from './ParticleSystem.js';
+import { ItemMeshFactory } from './ItemMeshFactory.js';
 
 export class Renderer3D {
   constructor(container) {
@@ -27,8 +28,8 @@ export class Renderer3D {
     this.createLights();
 
     // Static meshes
-    this.createTable();
-    this.createWalls();
+    this.tableMesh = this.createTable();
+    this.wallMeshes = this.createWalls();
     this.createCollectionTray();
     this.pusherMesh = this.createPusher();
 
@@ -41,11 +42,17 @@ export class Renderer3D {
       ...C.MATERIAL_CONFIG.coin,
     });
 
+    // Item mesh management
+    this.itemMeshes = new Map();
+
     // Drop indicator
     this.dropIndicator = this.createDropIndicator();
 
     // Background scene (sky + hills)
-    this.createBackground();
+    this.bgRefs = this.createBackground();
+
+    // Boss mesh (created on demand)
+    this.bossMesh = null;
 
     // Particle system
     this.particles = new ParticleSystem(this.scene);
@@ -56,6 +63,9 @@ export class Renderer3D {
       new THREE.Vector3(0, 1, 0),
       -C.DROP_Y
     );
+
+    // Animation time for item idle animations
+    this._time = 0;
   }
 
   createCamera() {
@@ -124,10 +134,13 @@ export class Renderer3D {
     const edge = new THREE.Mesh(edgeGeo, edgeMat);
     edge.position.set(0, 0.025, C.TABLE_DEPTH / 2);
     this.scene.add(edge);
+
+    return mesh;
   }
 
   createWalls() {
     const mat = new THREE.MeshStandardMaterial(C.MATERIAL_CONFIG.wall);
+    const walls = [];
 
     // Back wall
     const backGeo = new THREE.BoxGeometry(
@@ -140,6 +153,7 @@ export class Renderer3D {
     back.castShadow = true;
     back.receiveShadow = true;
     this.scene.add(back);
+    walls.push(back);
 
     // Left wall
     const sideGeo = new THREE.BoxGeometry(
@@ -152,6 +166,7 @@ export class Renderer3D {
     left.castShadow = true;
     left.receiveShadow = true;
     this.scene.add(left);
+    walls.push(left);
 
     // Right wall
     const right = new THREE.Mesh(sideGeo, mat);
@@ -159,6 +174,9 @@ export class Renderer3D {
     right.castShadow = true;
     right.receiveShadow = true;
     this.scene.add(right);
+    walls.push(right);
+
+    return walls;
   }
 
   createPusher() {
@@ -253,12 +271,14 @@ export class Renderer3D {
   }
 
   createBackground() {
+    const refs = { sky: null, hills: [], clouds: [] };
+
     // Sky gradient — large back plane
     const skyGeo = new THREE.PlaneGeometry(60, 30);
     const skyMat = new THREE.ShaderMaterial({
       uniforms: {
-        topColor: { value: new THREE.Color(0x4a90d9) },    // bright blue
-        bottomColor: { value: new THREE.Color(0x87ceeb) },  // light sky blue
+        topColor: { value: new THREE.Color(0x4a90d9) },
+        bottomColor: { value: new THREE.Color(0x87ceeb) },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -282,6 +302,7 @@ export class Renderer3D {
     sky.position.set(0, 8, -20);
     sky.renderOrder = -1;
     this.scene.add(sky);
+    refs.sky = sky;
 
     // Green hills — simple curved shapes
     const hillMat = new THREE.MeshStandardMaterial({
@@ -290,26 +311,26 @@ export class Renderer3D {
       metalness: 0.0,
     });
 
-    // Large hill
     const hill1Geo = new THREE.SphereGeometry(8, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
     const hill1 = new THREE.Mesh(hill1Geo, hillMat);
     hill1.position.set(-6, -2, -16);
     hill1.scale.set(1.5, 0.6, 1);
     this.scene.add(hill1);
+    refs.hills.push(hill1);
 
-    // Medium hill
     const hill2Geo = new THREE.SphereGeometry(5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
     const hill2 = new THREE.Mesh(hill2Geo, hillMat);
     hill2.position.set(8, -2, -14);
     hill2.scale.set(1.2, 0.7, 1);
     this.scene.add(hill2);
+    refs.hills.push(hill2);
 
-    // Small hill
     const hill3Geo = new THREE.SphereGeometry(3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);
     const hill3 = new THREE.Mesh(hill3Geo, hillMat);
     hill3.position.set(2, -2, -18);
     hill3.scale.set(1.3, 0.5, 1);
     this.scene.add(hill3);
+    refs.hills.push(hill3);
 
     // Simple white clouds
     const cloudMat = new THREE.MeshBasicMaterial({
@@ -333,11 +354,141 @@ export class Renderer3D {
       group.position.set(x, y, z);
       group.scale.setScalar(scale);
       this.scene.add(group);
+      refs.clouds.push(group);
     };
 
     createCloud(-8, 10, -15, 1.2);
     createCloud(5, 11, -17, 0.9);
     createCloud(12, 9, -13, 0.7);
+
+    return refs;
+  }
+
+  // ─── Scene switching ───
+  setScene(sceneId) {
+    const sceneConfig = C.SCENES[sceneId];
+    if (!sceneConfig) return;
+
+    // Update background
+    this.scene.background = new THREE.Color(sceneConfig.background);
+
+    // Update sky shader uniforms
+    if (this.bgRefs.sky) {
+      this.bgRefs.sky.material.uniforms.topColor.value.set(sceneConfig.skyTop);
+      this.bgRefs.sky.material.uniforms.bottomColor.value.set(sceneConfig.skyBottom);
+    }
+
+    // Update hill colors
+    for (const hill of this.bgRefs.hills) {
+      hill.material.color.set(sceneConfig.hillColor);
+    }
+
+    // Update table color
+    if (this.tableMesh) {
+      this.tableMesh.material.color.set(sceneConfig.tableColor);
+    }
+
+    // Update wall colors
+    for (const wall of this.wallMeshes) {
+      wall.material.color.set(sceneConfig.wallColor);
+    }
+  }
+
+  // ─── Pusher width for effects ───
+  setPusherWidth(newWidth) {
+    const scale = newWidth / C.PUSHER_WIDTH;
+    this.pusherMesh.scale.x = scale;
+  }
+
+  // ─── Boss Bowser mesh ───
+  showBoss() {
+    if (this.bossMesh) return;
+
+    const group = new THREE.Group();
+
+    // Body (green sphere shell)
+    const shellGeo = new THREE.SphereGeometry(1.2, 16, 12);
+    const shellMat = new THREE.MeshStandardMaterial({
+      color: 0x2d5a27,
+      metalness: 0.2,
+      roughness: 0.7,
+    });
+    const shell = new THREE.Mesh(shellGeo, shellMat);
+    shell.scale.set(1, 0.8, 1);
+    shell.position.y = 1.2;
+    group.add(shell);
+
+    // Head
+    const headGeo = new THREE.SphereGeometry(0.6, 12, 10);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xffc107, metalness: 0.1, roughness: 0.8 });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.set(0, 2.2, 0.6);
+    group.add(head);
+
+    // Horns
+    const hornGeo = new THREE.ConeGeometry(0.15, 0.5, 8);
+    const hornMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.3, roughness: 0.5 });
+    const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+    leftHorn.position.set(-0.35, 2.7, 0.5);
+    leftHorn.rotation.z = 0.3;
+    group.add(leftHorn);
+    const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+    rightHorn.position.set(0.35, 2.7, 0.5);
+    rightHorn.rotation.z = -0.3;
+    group.add(rightHorn);
+
+    // Spikes on shell
+    const spikeGeo = new THREE.ConeGeometry(0.12, 0.4, 6);
+    const spikeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.3, roughness: 0.5 });
+    for (let i = 0; i < 5; i++) {
+      const spike = new THREE.Mesh(spikeGeo, spikeMat);
+      const angle = (i / 5) * Math.PI * 1.2 - 0.3;
+      spike.position.set(
+        Math.sin(angle) * 0.9,
+        1.8 + Math.cos(angle) * 0.3,
+        -Math.cos(angle) * 0.6
+      );
+      spike.rotation.x = -angle * 0.5;
+      group.add(spike);
+    }
+
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.12, 8, 6);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5 });
+    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+    leftEye.position.set(-0.2, 2.3, 1.1);
+    group.add(leftEye);
+    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+    rightEye.position.set(0.2, 2.3, 1.1);
+    group.add(rightEye);
+
+    group.position.set(0, 0, -C.TABLE_DEPTH / 2 - 1.5);
+    group.scale.setScalar(0.8);
+    this.scene.add(group);
+    this.bossMesh = group;
+  }
+
+  hideBoss() {
+    if (this.bossMesh) {
+      this.scene.remove(this.bossMesh);
+      this.bossMesh = null;
+    }
+  }
+
+  flashBossDamage() {
+    if (!this.bossMesh) return;
+    // Quick red flash
+    this.bossMesh.traverse(child => {
+      if (child.isMesh && child.material) {
+        const origEmissive = child.material.emissive?.clone();
+        child.material.emissive?.set(0xff0000);
+        child.material.emissiveIntensity = 1;
+        setTimeout(() => {
+          if (origEmissive) child.material.emissive.copy(origEmissive);
+          child.material.emissiveIntensity = 0;
+        }, 150);
+      }
+    });
   }
 
   // ─── Particle helpers (called from GameEngine) ───
@@ -354,6 +505,9 @@ export class Renderer3D {
   }
 
   render(gameState) {
+    const dt = gameState.dt || 0.016;
+    this._time += dt;
+
     // Sync pusher
     if (gameState.pusherBody) {
       this.pusherMesh.position.copy(gameState.pusherBody.position);
@@ -363,10 +517,18 @@ export class Renderer3D {
     // Sync coins
     this.syncCoins(gameState.coins);
 
+    // Sync items
+    this.syncItems(gameState.items);
+
+    // Animate boss
+    if (this.bossMesh) {
+      this.bossMesh.rotation.y = Math.sin(this._time * 0.5) * 0.1;
+      this.bossMesh.position.y = Math.sin(this._time * 0.8) * 0.15;
+    }
+
     // Update drop indicator
     if (gameState.dropX !== undefined) {
       this.dropIndicator.position.x = gameState.dropX;
-      // Update drop line positions
       const positions = this.dropLine.geometry.attributes.position.array;
       positions[0] = gameState.dropX;
       positions[3] = gameState.dropX;
@@ -408,6 +570,46 @@ export class Renderer3D {
     }
   }
 
+  syncItems(items) {
+    if (!items) return;
+
+    const activeIds = new Set();
+
+    for (const item of items) {
+      activeIds.add(item.id);
+
+      let mesh = this.itemMeshes.get(item.id);
+      if (!mesh) {
+        mesh = ItemMeshFactory.create(item.type);
+        mesh.castShadow = true;
+        this.scene.add(mesh);
+        this.itemMeshes.set(item.id, { mesh, type: item.type });
+      } else {
+        mesh = mesh.mesh;
+      }
+
+      mesh.position.copy(item.body.position);
+      mesh.quaternion.copy(item.body.quaternion);
+
+      // Idle animations
+      if (item.type === 'star') {
+        mesh.rotation.y = this._time * 2;
+      } else if (item.type === 'question_block') {
+        mesh.position.y = item.body.position.y + Math.sin(this._time * 3) * 0.05;
+      } else if (item.type === 'fire_flower') {
+        mesh.rotation.y = this._time * 1.5;
+      }
+    }
+
+    // Remove meshes for deleted items
+    for (const [id, entry] of this.itemMeshes) {
+      if (!activeIds.has(id)) {
+        this.scene.remove(entry.mesh);
+        this.itemMeshes.delete(id);
+      }
+    }
+  }
+
   screenToWorldX(screenX, screenY) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(
@@ -439,8 +641,18 @@ export class Renderer3D {
     }
     this.coinMeshes.clear();
 
+    // Dispose item meshes
+    for (const [, entry] of this.itemMeshes) {
+      this.scene.remove(entry.mesh);
+    }
+    this.itemMeshes.clear();
+
+    // Dispose boss
+    this.hideBoss();
+
     this.coinGeometry.dispose();
     this.coinMaterial.dispose();
+    ItemMeshFactory.dispose();
 
     // Dispose all scene children
     this.scene.traverse((obj) => {

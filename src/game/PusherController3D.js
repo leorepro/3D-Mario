@@ -3,6 +3,9 @@ import * as C from './constants.js';
 
 export class PusherController3D {
   constructor(physicsWorld) {
+    this.physicsWorld = physicsWorld;
+    this.currentWidth = C.PUSHER_WIDTH;
+
     const shape = new CANNON.Box(new CANNON.Vec3(
       C.PUSHER_WIDTH / 2,
       C.PUSHER_HEIGHT / 2,
@@ -23,10 +26,11 @@ export class PusherController3D {
     this.currentZ = C.PUSHER_Z_MIN;
     this.minZ = C.PUSHER_Z_MIN;
     this.maxZ = C.PUSHER_Z_MAX;
+    this.speed = C.PUSHER_SPEED;
   }
 
   update() {
-    this.currentZ += C.PUSHER_SPEED * this.direction;
+    this.currentZ += this.speed * this.direction;
 
     if (this.currentZ >= this.maxZ) {
       this.currentZ = this.maxZ;
@@ -37,7 +41,38 @@ export class PusherController3D {
     }
 
     this.body.position.set(0, C.PUSHER_HEIGHT / 2, this.currentZ);
-    this.body.velocity.set(0, 0, C.PUSHER_SPEED * this.direction * 60);
+    this.body.velocity.set(0, 0, this.speed * this.direction * 60);
+  }
+
+  /** Change pusher width (e.g. mushroom effect) */
+  setWidth(newWidth) {
+    this.currentWidth = newWidth;
+    while (this.body.shapes.length > 0) {
+      this.body.removeShape(this.body.shapes[0]);
+    }
+    const shape = new CANNON.Box(new CANNON.Vec3(
+      newWidth / 2,
+      C.PUSHER_HEIGHT / 2,
+      C.PUSHER_DEPTH / 2
+    ));
+    this.body.addShape(shape);
+  }
+
+  /** Change pusher speed (e.g. frenzy mode) */
+  setSpeed(speed) {
+    this.speed = speed;
+  }
+
+  resetWidth() {
+    this.setWidth(C.PUSHER_WIDTH);
+  }
+
+  resetSpeed() {
+    this.speed = C.PUSHER_SPEED;
+  }
+
+  getWidth() {
+    return this.currentWidth;
   }
 
   getBody() {
