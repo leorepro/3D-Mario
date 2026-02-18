@@ -40,7 +40,9 @@ export class PusherController3D {
       this.direction = 1;
     }
 
-    this.body.position.set(0, C.PUSHER_HEIGHT / 2, this.currentZ);
+    // Pusher rides on the tilted table surface
+    const yOnSlope = C.PUSHER_HEIGHT / 2 - this.currentZ * Math.sin(C.TABLE_TILT_RAD);
+    this.body.position.set(0, yOnSlope, this.currentZ);
     this.body.velocity.set(0, 0, this.speed * this.direction * 60);
   }
 

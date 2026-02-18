@@ -53,22 +53,31 @@ export class PhysicsWorld3D {
       material: this.tableMaterial,
       position: new CANNON.Vec3(0, -C.TABLE_THICKNESS / 2, 0),
     });
+    // Tilt table: rotate around X so back is higher, front is lower
+    this.tableBody.quaternion.setFromEuler(-C.TABLE_TILT_RAD, 0, 0);
     this.world.addBody(this.tableBody);
   }
 
   createWalls() {
+    const tiltQ = new CANNON.Quaternion();
+    tiltQ.setFromEuler(-C.TABLE_TILT_RAD, 0, 0);
+
     // Back wall
     const backShape = new CANNON.Box(new CANNON.Vec3(
       C.TABLE_WIDTH / 2 + C.WALL_THICKNESS,
       C.WALL_HEIGHT / 2,
       C.WALL_THICKNESS / 2
     ));
+    // Position back wall on the tilted surface (back edge rises)
+    const backZ = -C.TABLE_DEPTH / 2 - C.WALL_THICKNESS / 2;
+    const backRise = -backZ * Math.sin(C.TABLE_TILT_RAD);
     this.backWall = new CANNON.Body({
       mass: 0,
       shape: backShape,
       material: this.wallMaterial,
-      position: new CANNON.Vec3(0, C.WALL_HEIGHT / 2, -C.TABLE_DEPTH / 2 - C.WALL_THICKNESS / 2),
+      position: new CANNON.Vec3(0, C.WALL_HEIGHT / 2 + backRise, backZ),
     });
+    this.backWall.quaternion.copy(tiltQ);
     this.world.addBody(this.backWall);
 
     // Left wall
@@ -83,6 +92,7 @@ export class PhysicsWorld3D {
       material: this.wallMaterial,
       position: new CANNON.Vec3(-C.TABLE_WIDTH / 2 - C.WALL_THICKNESS / 2, C.WALL_HEIGHT / 2, 0),
     });
+    this.leftWall.quaternion.copy(tiltQ);
     this.world.addBody(this.leftWall);
 
     // Right wall
@@ -92,6 +102,7 @@ export class PhysicsWorld3D {
       material: this.wallMaterial,
       position: new CANNON.Vec3(C.TABLE_WIDTH / 2 + C.WALL_THICKNESS / 2, C.WALL_HEIGHT / 2, 0),
     });
+    this.rightWall.quaternion.copy(tiltQ);
     this.world.addBody(this.rightWall);
 
     // NO front wall — coins fall off the front edge!

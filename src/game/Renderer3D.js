@@ -121,19 +121,26 @@ export class Renderer3D {
   }
 
   createTable() {
+    // Group for table + edge — tilted together
+    this.tableGroup = new THREE.Group();
+
     const geo = new THREE.BoxGeometry(C.TABLE_WIDTH, C.TABLE_THICKNESS, C.TABLE_DEPTH);
     const mat = new THREE.MeshStandardMaterial(C.MATERIAL_CONFIG.table);
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(0, -C.TABLE_THICKNESS / 2, 0);
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this.tableGroup.add(mesh);
 
     // Table edge trim (front edge indicator)
     const edgeGeo = new THREE.BoxGeometry(C.TABLE_WIDTH, 0.05, 0.05);
     const edgeMat = new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: 0xff2222, emissiveIntensity: 0.3 });
     const edge = new THREE.Mesh(edgeGeo, edgeMat);
     edge.position.set(0, 0.025, C.TABLE_DEPTH / 2);
-    this.scene.add(edge);
+    this.tableGroup.add(edge);
+
+    // Apply tilt to the whole group
+    this.tableGroup.rotation.x = -C.TABLE_TILT_RAD;
+    this.scene.add(this.tableGroup);
 
     return mesh;
   }
@@ -141,6 +148,9 @@ export class Renderer3D {
   createWalls() {
     const mat = new THREE.MeshStandardMaterial(C.MATERIAL_CONFIG.wall);
     const walls = [];
+
+    // Wall group — tilted with table
+    this.wallGroup = new THREE.Group();
 
     // Back wall
     const backGeo = new THREE.BoxGeometry(
@@ -152,7 +162,7 @@ export class Renderer3D {
     back.position.set(0, C.WALL_HEIGHT / 2, -C.TABLE_DEPTH / 2 - C.WALL_THICKNESS / 2);
     back.castShadow = true;
     back.receiveShadow = true;
-    this.scene.add(back);
+    this.wallGroup.add(back);
     walls.push(back);
 
     // Left wall
@@ -165,7 +175,7 @@ export class Renderer3D {
     left.position.set(-C.TABLE_WIDTH / 2 - C.WALL_THICKNESS / 2, C.WALL_HEIGHT / 2, 0);
     left.castShadow = true;
     left.receiveShadow = true;
-    this.scene.add(left);
+    this.wallGroup.add(left);
     walls.push(left);
 
     // Right wall
@@ -173,8 +183,12 @@ export class Renderer3D {
     right.position.set(C.TABLE_WIDTH / 2 + C.WALL_THICKNESS / 2, C.WALL_HEIGHT / 2, 0);
     right.castShadow = true;
     right.receiveShadow = true;
-    this.scene.add(right);
+    this.wallGroup.add(right);
     walls.push(right);
+
+    // Apply same tilt
+    this.wallGroup.rotation.x = -C.TABLE_TILT_RAD;
+    this.scene.add(this.wallGroup);
 
     return walls;
   }
@@ -225,7 +239,8 @@ export class Renderer3D {
   }
 
   createCollectionTray() {
-    // Tray below the front edge
+    // Tray below the front edge (adjusted for table tilt)
+    const frontDrop = (C.TABLE_DEPTH / 2) * Math.sin(C.TABLE_TILT_RAD);
     const geo = new THREE.BoxGeometry(C.TABLE_WIDTH + 1, 0.2, 2);
     const mat = new THREE.MeshStandardMaterial({
       ...C.MATERIAL_CONFIG.tray,
@@ -233,7 +248,7 @@ export class Renderer3D {
       opacity: 0.7,
     });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(0, -2, C.TABLE_DEPTH / 2 + 1.5);
+    mesh.position.set(0, -2 - frontDrop, C.TABLE_DEPTH / 2 + 1.5);
     mesh.receiveShadow = true;
     this.scene.add(mesh);
   }

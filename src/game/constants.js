@@ -7,6 +7,8 @@ export const TABLE_WIDTH = 8;
 export const TABLE_DEPTH = 14;
 export const TABLE_THICKNESS = 0.5;
 export const TABLE_Y = 0;
+export const TABLE_TILT_DEG = 3; // degrees tilted forward (back higher, front lower)
+export const TABLE_TILT_RAD = TABLE_TILT_DEG * Math.PI / 180;
 
 // ── Walls ──
 export const WALL_HEIGHT = 2;
