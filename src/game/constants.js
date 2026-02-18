@@ -37,9 +37,9 @@ export const DROP_X_RANGE = 3.5;
 export const COLLECTION_Y = -3;
 
 // ── Camera ──
-export const CAMERA_POSITION = { x: 0, y: 14, z: 12 };
-export const CAMERA_LOOK_AT = { x: 0, y: 0, z: -1 };
-export const CAMERA_FOV = 45;
+export const CAMERA_POSITION = { x: 0, y: 16, z: 16 };
+export const CAMERA_LOOK_AT = { x: 0, y: -1, z: 1 };
+export const CAMERA_FOV = 50;
 
 // ── Physics ──
 export const GRAVITY = { x: 0, y: -9.82, z: 0 };
