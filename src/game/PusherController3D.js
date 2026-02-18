@@ -20,7 +20,7 @@ export class PusherController3D {
     this.heightVal = height;
     this.depthVal = depth;
 
-    const shape = new CANNON.Box(new CANNON.Vec3(
+    const platformShape = new CANNON.Box(new CANNON.Vec3(
       width / 2,
       height / 2,
       depth / 2
@@ -37,10 +37,10 @@ export class PusherController3D {
     this.body = new CANNON.Body({
       mass: 0,
       type: CANNON.Body.KINEMATIC,
-      shape,
       material: physicsWorld.pusherMaterial,
       position: new CANNON.Vec3(0, initY, startZ),
     });
+    this.body.addShape(platformShape);
     this.body.quaternion.copy(this.tiltQ);
 
     physicsWorld.addBody(this.body);

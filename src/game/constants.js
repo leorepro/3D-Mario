@@ -22,23 +22,17 @@ export const COIN_FRICTION = 0.5;
 export const COIN_RESTITUTION = 0.1;
 export const MAX_COINS = 999;
 
-// ── Pusher (single) ──
+// ── Pusher (large sliding platform — Mario red) ──
 export const PUSHER_WIDTH = TABLE_WIDTH;
-export const PUSHER_DEPTH = 1.2;
-export const PUSHER_HEIGHT = 1.0;
-export const PUSHER_Z_MIN = -4.5;
-export const PUSHER_Z_MAX = 5.0;
-export const PUSHER_SPEED = 0.05;
+export const PUSHER_DEPTH = 7.0;          // large platform covers most of the table
+export const PUSHER_HEIGHT = 0.5;         // thick enough to push coins
+export const PUSHER_Z_MIN = -3.0;         // back position
+export const PUSHER_Z_MAX = 1.5;          // forward position
+export const PUSHER_SPEED = 0.03;         // slower for larger platform
 
-// ── Back Ledge (narrow shelf behind pusher for coin drop) ──
-export const LEDGE_WIDTH = TABLE_WIDTH;
-export const LEDGE_DEPTH = 0.5;          // < half coin diameter (0.6), coins slide off
-export const LEDGE_HEIGHT = 0.6;         // raised platform
-export const LEDGE_Z = -TABLE_DEPTH / 2 + LEDGE_DEPTH / 2 + 0.3;  // near back wall
-
-// ── Drop Zone ── (above the back ledge)
+// ── Drop Zone ── (above the platform surface)
 export const DROP_Y = 4;
-export const DROP_Z = LEDGE_Z;
+export const DROP_Z = -1.5;              // always on platform surface
 export const DROP_X_RANGE = 3.5;
 
 // ── Collection ──

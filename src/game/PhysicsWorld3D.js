@@ -107,20 +107,7 @@ export class PhysicsWorld3D {
 
     // NO front wall — coins fall off the front edge!
 
-    // Back ledge — narrow raised shelf behind pusher start
-    const ledgeShape = new CANNON.Box(new CANNON.Vec3(
-      C.LEDGE_WIDTH / 2,
-      C.LEDGE_HEIGHT / 2,
-      C.LEDGE_DEPTH / 2
-    ));
-    this.ledgeBody = new CANNON.Body({
-      mass: 0,
-      shape: ledgeShape,
-      material: this.tableMaterial,
-      position: new CANNON.Vec3(0, C.LEDGE_HEIGHT / 2, C.LEDGE_Z),
-    });
-    this.ledgeBody.quaternion.copy(tiltQ);
-    this.world.addBody(this.ledgeBody);
+    // Back ledge is now part of the pusher body (compound shape in PusherController3D)
   }
 
   step(dt) {

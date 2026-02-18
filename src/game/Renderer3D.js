@@ -32,9 +32,8 @@ export class Renderer3D {
     this.wallMeshes = this.createWalls();
     this.createCollectionTray();
     this.pusherMesh = this.createPusherMesh(
-      C.PUSHER_WIDTH, C.PUSHER_HEIGHT, C.PUSHER_DEPTH, 0xc4713b
+      C.PUSHER_WIDTH, C.PUSHER_HEIGHT, C.PUSHER_DEPTH
     );
-    this.ledgeMesh = this.createLedge();
 
     // Coin mesh management
     this.coinMeshes = new Map();
@@ -299,79 +298,75 @@ export class Renderer3D {
     return wallMeshes;
   }
 
-  createPusherMesh(width, height, depth, color) {
+  createPusherMesh(width, height, depth) {
     const group = new THREE.Group();
 
-    // Main body
+    // ── Main platform body (Mario Red) ──
     const bodyGeo = new THREE.BoxGeometry(width, height, depth);
     const bodyMat = new THREE.MeshStandardMaterial({
-      color,
-      metalness: 0.15,
-      roughness: 0.85,
+      color: 0xe52521,    // Mario red
+      metalness: 0.1,
+      roughness: 0.75,
     });
     const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
     bodyMesh.castShadow = true;
     bodyMesh.receiveShadow = true;
     group.add(bodyMesh);
 
-    // Top metallic trim
-    const trimGeo = new THREE.BoxGeometry(width + 0.05, 0.08, depth + 0.05);
-    const trimMat = new THREE.MeshStandardMaterial({
-      color: 0xd4a44a,
-      metalness: 0.6,
-      roughness: 0.3,
+    // ── Yellow top surface trim ──
+    const topTrimGeo = new THREE.BoxGeometry(width + 0.02, 0.04, depth + 0.02);
+    const yellowMat = new THREE.MeshStandardMaterial({
+      color: 0xfbd000,    // Mario yellow
+      metalness: 0.3,
+      roughness: 0.4,
     });
-    const trim = new THREE.Mesh(trimGeo, trimMat);
-    trim.position.y = height / 2 + 0.04;
-    trim.castShadow = true;
-    group.add(trim);
+    const topTrim = new THREE.Mesh(topTrimGeo, yellowMat);
+    topTrim.position.y = height / 2 + 0.02;
+    group.add(topTrim);
 
-    // Front face accent (push face — brighter)
-    const accentColor = new THREE.Color(color).offsetHSL(0, 0, 0.08);
-    const frontGeo = new THREE.BoxGeometry(width, height * 0.8, 0.04);
-    const frontMat = new THREE.MeshStandardMaterial({
-      color: accentColor,
-      metalness: 0.2,
+    // ── Front push face (darker red, the face that pushes coins) ──
+    const frontFaceGeo = new THREE.BoxGeometry(width, height, 0.06);
+    const frontFaceMat = new THREE.MeshStandardMaterial({
+      color: 0xcc1f1f,
+      metalness: 0.15,
       roughness: 0.7,
-      emissive: accentColor,
-      emissiveIntensity: 0.05,
     });
-    const front = new THREE.Mesh(frontGeo, frontMat);
-    front.position.z = depth / 2 + 0.02;
-    group.add(front);
+    const frontFace = new THREE.Mesh(frontFaceGeo, frontFaceMat);
+    frontFace.position.z = depth / 2 + 0.03;
+    group.add(frontFace);
+
+    // ── Yellow front edge lip (like the reference toy) ──
+    const lipGeo = new THREE.BoxGeometry(width + 0.1, 0.08, 0.15);
+    const frontLip = new THREE.Mesh(lipGeo, yellowMat);
+    frontLip.position.set(0, height / 2 + 0.02, depth / 2 + 0.05);
+    group.add(frontLip);
+
+    // ── Grid lines on platform surface (subtle visual detail) ──
+    const lineMat = new THREE.MeshStandardMaterial({
+      color: 0xb81e1e,
+      metalness: 0.05,
+      roughness: 0.9,
+    });
+    // Horizontal lines across the platform
+    for (let i = 1; i < 4; i++) {
+      const lineGeo = new THREE.BoxGeometry(width - 0.2, 0.02, 0.04);
+      const line = new THREE.Mesh(lineGeo, lineMat);
+      line.position.set(0, height / 2 + 0.01, -depth / 2 + (depth / 4) * i);
+      group.add(line);
+    }
+
+    // ── Yellow side edge strips ──
+    const sideStripGeo = new THREE.BoxGeometry(0.08, height + 0.04, depth);
+    const leftStrip = new THREE.Mesh(sideStripGeo, yellowMat);
+    leftStrip.position.set(-width / 2 - 0.02, 0, 0);
+    group.add(leftStrip);
+    const rightStrip = new THREE.Mesh(sideStripGeo, yellowMat);
+    rightStrip.position.set(width / 2 + 0.02, 0, 0);
+    group.add(rightStrip);
 
     // Store original width for scaling reference
     group.userData.baseWidth = width;
 
-    this.scene.add(group);
-    return group;
-  }
-
-  createLedge() {
-    const group = new THREE.Group();
-
-    // Main ledge body
-    const geo = new THREE.BoxGeometry(C.LEDGE_WIDTH, C.LEDGE_HEIGHT, C.LEDGE_DEPTH);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x8b6914,
-      metalness: 0.3,
-      roughness: 0.7,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    group.add(mesh);
-
-    // Gold trim on top edge
-    const trimGeo = new THREE.BoxGeometry(C.LEDGE_WIDTH + 0.05, 0.06, C.LEDGE_DEPTH + 0.05);
-    const trimMat = new THREE.MeshStandardMaterial({
-      color: 0xd4a44a, metalness: 0.6, roughness: 0.3,
-    });
-    const trim = new THREE.Mesh(trimGeo, trimMat);
-    trim.position.y = C.LEDGE_HEIGHT / 2 + 0.03;
-    group.add(trim);
-
-    group.position.set(0, C.LEDGE_HEIGHT / 2, C.LEDGE_Z);
     this.scene.add(group);
     return group;
   }
@@ -394,29 +389,80 @@ export class Renderer3D {
   createCoinTextures() {
     const size = 128;
 
-    // ── Top face: gold disc with star ──
+    const cx = size / 2, cy = size / 2;
+
+    // Helper: draw gold coin base with ornate rim
+    const drawCoinBase = (ctx) => {
+      // Outer gold fill
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2);
+      grad.addColorStop(0, '#fff1a8');
+      grad.addColorStop(0.3, '#ffe566');
+      grad.addColorStop(0.7, '#ffc107');
+      grad.addColorStop(0.9, '#daa520');
+      grad.addColorStop(1, '#8b6914');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Outer raised rim
+      ctx.strokeStyle = '#8b6914';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.46, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner decorative ring
+      ctx.strokeStyle = '#c49000';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.40, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Tiny dot pattern around rim
+      ctx.fillStyle = '#c49000';
+      for (let i = 0; i < 16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        const dx = cx + Math.cos(angle) * size * 0.43;
+        const dy = cy + Math.sin(angle) * size * 0.43;
+        ctx.beginPath();
+        ctx.arc(dx, dy, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    // ── Top face: Super Star with sparkle rays ──
     const topCanvas = document.createElement('canvas');
     topCanvas.width = topCanvas.height = size;
     const topCtx = topCanvas.getContext('2d');
-    // Gold background
-    const topGrad = topCtx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-    topGrad.addColorStop(0, '#ffe566');
-    topGrad.addColorStop(0.7, '#ffc107');
-    topGrad.addColorStop(1, '#b8860b');
-    topCtx.fillStyle = topGrad;
+    drawCoinBase(topCtx);
+
+    // Sparkle rays behind star
+    topCtx.save();
+    topCtx.globalAlpha = 0.15;
+    topCtx.strokeStyle = '#fff';
+    topCtx.lineWidth = 2;
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const x1 = cx + Math.cos(angle) * size * 0.12;
+      const y1 = cy + Math.sin(angle) * size * 0.12;
+      const x2 = cx + Math.cos(angle) * size * 0.35;
+      const y2 = cy + Math.sin(angle) * size * 0.35;
+      topCtx.beginPath();
+      topCtx.moveTo(x1, y1);
+      topCtx.lineTo(x2, y2);
+      topCtx.stroke();
+    }
+    topCtx.restore();
+
+    // Star with gradient fill
+    const starGrad = topCtx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.25);
+    starGrad.addColorStop(0, '#fff8dc');
+    starGrad.addColorStop(0.5, '#daa520');
+    starGrad.addColorStop(1, '#8b6914');
+    topCtx.fillStyle = starGrad;
     topCtx.beginPath();
-    topCtx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
-    topCtx.fill();
-    // Inner ring
-    topCtx.strokeStyle = '#b8860b';
-    topCtx.lineWidth = 3;
-    topCtx.beginPath();
-    topCtx.arc(size/2, size/2, size * 0.38, 0, Math.PI * 2);
-    topCtx.stroke();
-    // Star
-    topCtx.fillStyle = '#b8860b';
-    topCtx.beginPath();
-    const cx = size/2, cy = size/2, outerR = size * 0.25, innerR = size * 0.1;
+    const outerR = size * 0.27, innerR = size * 0.11;
     for (let i = 0; i < 10; i++) {
       const r = i % 2 === 0 ? outerR : innerR;
       const angle = (i * Math.PI / 5) - Math.PI / 2;
@@ -427,32 +473,70 @@ export class Renderer3D {
     }
     topCtx.closePath();
     topCtx.fill();
+    // Star outline
+    topCtx.strokeStyle = '#8b6914';
+    topCtx.lineWidth = 1.5;
+    topCtx.stroke();
+    // Star highlight
+    topCtx.fillStyle = 'rgba(255,255,255,0.3)';
+    topCtx.beginPath();
+    topCtx.arc(cx - size * 0.06, cy - size * 0.06, size * 0.06, 0, Math.PI * 2);
+    topCtx.fill();
 
-    // ── Bottom face: gold disc with M ──
+    // ── Bottom face: ornate M with mushroom accent ──
     const botCanvas = document.createElement('canvas');
     botCanvas.width = botCanvas.height = size;
     const botCtx = botCanvas.getContext('2d');
-    // Gold background
-    const botGrad = botCtx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-    botGrad.addColorStop(0, '#ffe566');
-    botGrad.addColorStop(0.7, '#ffc107');
-    botGrad.addColorStop(1, '#b8860b');
-    botCtx.fillStyle = botGrad;
+    drawCoinBase(botCtx);
+
+    // Decorative cross pattern behind M
+    botCtx.save();
+    botCtx.globalAlpha = 0.12;
+    botCtx.strokeStyle = '#daa520';
+    botCtx.lineWidth = 8;
     botCtx.beginPath();
-    botCtx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
-    botCtx.fill();
-    // Inner ring
-    botCtx.strokeStyle = '#b8860b';
-    botCtx.lineWidth = 3;
-    botCtx.beginPath();
-    botCtx.arc(size/2, size/2, size * 0.38, 0, Math.PI * 2);
+    botCtx.moveTo(cx, cy - size * 0.3);
+    botCtx.lineTo(cx, cy + size * 0.3);
     botCtx.stroke();
-    // "M" letter
-    botCtx.fillStyle = '#b8860b';
-    botCtx.font = `bold ${size * 0.45}px serif`;
+    botCtx.beginPath();
+    botCtx.moveTo(cx - size * 0.3, cy);
+    botCtx.lineTo(cx + size * 0.3, cy);
+    botCtx.stroke();
+    botCtx.restore();
+
+    // "M" with shadow and gradient
+    botCtx.save();
+    // Shadow
+    botCtx.fillStyle = '#6b4e00';
+    botCtx.font = `bold ${size * 0.48}px "Georgia", serif`;
     botCtx.textAlign = 'center';
     botCtx.textBaseline = 'middle';
-    botCtx.fillText('M', size/2, size/2 + 2);
+    botCtx.fillText('M', cx + 1.5, cy + 3);
+    // Main letter with gradient
+    const mGrad = botCtx.createLinearGradient(cx, cy - size * 0.2, cx, cy + size * 0.2);
+    mGrad.addColorStop(0, '#fff8dc');
+    mGrad.addColorStop(0.4, '#daa520');
+    mGrad.addColorStop(1, '#8b6914');
+    botCtx.fillStyle = mGrad;
+    botCtx.fillText('M', cx, cy + 1);
+    // Letter outline
+    botCtx.strokeStyle = '#6b4e00';
+    botCtx.lineWidth = 1;
+    botCtx.strokeText('M', cx, cy + 1);
+    botCtx.restore();
+
+    // Small mushroom icon below M
+    botCtx.fillStyle = '#c41e1e';
+    botCtx.beginPath();
+    botCtx.arc(cx, cy + size * 0.28, size * 0.06, Math.PI, 0);
+    botCtx.fill();
+    botCtx.fillStyle = '#fff';
+    botCtx.beginPath();
+    botCtx.arc(cx, cy + size * 0.27, size * 0.02, 0, Math.PI * 2);
+    botCtx.fill();
+    // Mushroom stem
+    botCtx.fillStyle = '#f5e6c8';
+    botCtx.fillRect(cx - size * 0.025, cy + size * 0.28, size * 0.05, size * 0.04);
 
     const topTex = new THREE.CanvasTexture(topCanvas);
     const botTex = new THREE.CanvasTexture(botCanvas);
