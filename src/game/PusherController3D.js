@@ -2,37 +2,54 @@ import * as CANNON from 'cannon-es';
 import * as C from './constants.js';
 
 export class PusherController3D {
-  constructor(physicsWorld) {
+  constructor(physicsWorld, config = {}) {
+    const {
+      width = C.PUSHER_WIDTH,
+      height = C.PUSHER_HEIGHT,
+      depth = C.PUSHER_DEPTH,
+      zMin = C.FRONT_PUSHER_Z_MIN,
+      zMax = C.FRONT_PUSHER_Z_MAX,
+      speed = C.PUSHER_SPEED,
+      startDirection = 1,
+    } = config;
+
     this.physicsWorld = physicsWorld;
-    this.currentWidth = C.PUSHER_WIDTH;
+    this.currentWidth = width;
+    this.defaultWidth = width;
+    this.defaultSpeed = speed;
+    this.heightVal = height;
+    this.depthVal = depth;
 
     const shape = new CANNON.Box(new CANNON.Vec3(
-      C.PUSHER_WIDTH / 2,
-      C.PUSHER_HEIGHT / 2,
-      C.PUSHER_DEPTH / 2
+      width / 2,
+      height / 2,
+      depth / 2
     ));
 
     // Pre-compute tilt quaternion (same as table)
     this.tiltQ = new CANNON.Quaternion();
     this.tiltQ.setFromEuler(-C.TABLE_TILT_RAD, 0, 0);
 
-    const initY = C.PUSHER_HEIGHT / 2 - C.PUSHER_Z_MIN * Math.sin(C.TABLE_TILT_RAD);
+    const startZ = startDirection === 1 ? zMin : zMax;
+    const sinTilt = Math.sin(C.TABLE_TILT_RAD);
+    const initY = height / 2 - startZ * sinTilt;
+
     this.body = new CANNON.Body({
       mass: 0,
       type: CANNON.Body.KINEMATIC,
       shape,
       material: physicsWorld.pusherMaterial,
-      position: new CANNON.Vec3(0, initY, C.PUSHER_Z_MIN),
+      position: new CANNON.Vec3(0, initY, startZ),
     });
     this.body.quaternion.copy(this.tiltQ);
 
     physicsWorld.addBody(this.body);
 
-    this.direction = 1;
-    this.currentZ = C.PUSHER_Z_MIN;
-    this.minZ = C.PUSHER_Z_MIN;
-    this.maxZ = C.PUSHER_Z_MAX;
-    this.speed = C.PUSHER_SPEED;
+    this.direction = startDirection;
+    this.currentZ = startZ;
+    this.minZ = zMin;
+    this.maxZ = zMax;
+    this.speed = speed;
   }
 
   update() {
@@ -46,14 +63,16 @@ export class PusherController3D {
       this.direction = 1;
     }
 
-    // Pusher rides on the tilted table surface (parallel to table)
-    const yOnSlope = C.PUSHER_HEIGHT / 2 - this.currentZ * Math.sin(C.TABLE_TILT_RAD);
+    const sinTilt = Math.sin(C.TABLE_TILT_RAD);
+    const cosTilt = Math.cos(C.TABLE_TILT_RAD);
+    const yOnSlope = this.heightVal / 2 - this.currentZ * sinTilt;
     this.body.position.set(0, yOnSlope, this.currentZ);
     this.body.quaternion.copy(this.tiltQ);
-    this.body.velocity.set(0, 0, this.speed * this.direction * 60);
+
+    const vAlongSlope = this.speed * this.direction * 60;
+    this.body.velocity.set(0, -vAlongSlope * sinTilt, vAlongSlope * cosTilt);
   }
 
-  /** Change pusher width (e.g. mushroom effect) */
   setWidth(newWidth) {
     this.currentWidth = newWidth;
     while (this.body.shapes.length > 0) {
@@ -61,23 +80,22 @@ export class PusherController3D {
     }
     const shape = new CANNON.Box(new CANNON.Vec3(
       newWidth / 2,
-      C.PUSHER_HEIGHT / 2,
-      C.PUSHER_DEPTH / 2
+      this.heightVal / 2,
+      this.depthVal / 2
     ));
     this.body.addShape(shape);
   }
 
-  /** Change pusher speed (e.g. frenzy mode) */
   setSpeed(speed) {
     this.speed = speed;
   }
 
   resetWidth() {
-    this.setWidth(C.PUSHER_WIDTH);
+    this.setWidth(this.defaultWidth);
   }
 
   resetSpeed() {
-    this.speed = C.PUSHER_SPEED;
+    this.speed = this.defaultSpeed;
   }
 
   getWidth() {

@@ -31,16 +31,38 @@ export class Renderer3D {
     this.tableMesh = this.createTable();
     this.wallMeshes = this.createWalls();
     this.createCollectionTray();
-    this.pusherMesh = this.createPusher();
+    this.frontPusherMesh = this.createPusherMesh(
+      C.FRONT_PUSHER_WIDTH, C.FRONT_PUSHER_HEIGHT, C.FRONT_PUSHER_DEPTH, 0xc4713b
+    );
+    this.backPusherMesh = this.createPusherMesh(
+      C.BACK_PUSHER_WIDTH, C.BACK_PUSHER_HEIGHT, C.BACK_PUSHER_DEPTH, 0x9e5a2a
+    );
+    // Legacy alias
+    this.pusherMesh = this.frontPusherMesh;
 
     // Coin mesh management
     this.coinMeshes = new Map();
     this.coinGeometry = new THREE.CylinderGeometry(
       C.COIN_RADIUS, C.COIN_RADIUS, C.COIN_HEIGHT, 24
     );
-    this.coinMaterial = new THREE.MeshStandardMaterial({
-      ...C.MATERIAL_CONFIG.coin,
-    });
+    this.coinTextures = this.createCoinTextures();
+    this.coinMaterials = [
+      new THREE.MeshStandardMaterial({  // side (edge)
+        color: C.MATERIAL_CONFIG.coinEdge.color,
+        metalness: C.MATERIAL_CONFIG.coinEdge.metalness,
+        roughness: C.MATERIAL_CONFIG.coinEdge.roughness,
+      }),
+      new THREE.MeshStandardMaterial({  // top cap (star)
+        map: this.coinTextures.top,
+        metalness: 0.7,
+        roughness: 0.25,
+      }),
+      new THREE.MeshStandardMaterial({  // bottom cap (M)
+        map: this.coinTextures.bottom,
+        metalness: 0.7,
+        roughness: 0.25,
+      }),
+    ];
 
     // Item mesh management
     this.itemMeshes = new Map();
@@ -146,61 +168,148 @@ export class Renderer3D {
   }
 
   createWalls() {
-    const mat = new THREE.MeshStandardMaterial(C.MATERIAL_CONFIG.wall);
-    const walls = [];
-
-    // Wall group — tilted with table
     this.wallGroup = new THREE.Group();
+    const wallMeshes = [];
 
-    // Back wall
-    const backGeo = new THREE.BoxGeometry(
-      C.TABLE_WIDTH + C.WALL_THICKNESS * 2,
-      C.WALL_HEIGHT,
-      C.WALL_THICKNESS
+    // ── Brick parameters ──
+    const brickW = 0.5, brickH = 0.25, brickD = C.WALL_THICKNESS;
+    const mortarGap = 0.03;
+    const brickGeo = new THREE.BoxGeometry(brickW - mortarGap, brickH - mortarGap, brickD - mortarGap);
+    const brickColors = [0xc4713b, 0xb5623a, 0xd47a3f, 0xba6838];
+
+    // ── Helper: build a brick wall face ──
+    const buildBrickWall = (wallWidth, wallHeight, wallDepth, position, rotationY) => {
+      const cols = Math.ceil(wallWidth / brickW);
+      const rows = Math.ceil(wallHeight / brickH);
+      const count = cols * rows;
+
+      const brickMat = new THREE.MeshStandardMaterial({
+        color: 0xc4713b, metalness: 0.1, roughness: 0.85,
+      });
+      const instMesh = new THREE.InstancedMesh(brickGeo, brickMat, count);
+      instMesh.castShadow = true;
+      instMesh.receiveShadow = true;
+
+      const dummy = new THREE.Object3D();
+      const color = new THREE.Color();
+      let idx = 0;
+
+      for (let row = 0; row < rows; row++) {
+        const offset = (row % 2 === 0) ? 0 : brickW / 2; // stagger
+        for (let col = 0; col < cols; col++) {
+          const x = -wallWidth / 2 + col * brickW + offset + brickW / 2;
+          const y = row * brickH + brickH / 2;
+          if (x > wallWidth / 2 + brickW / 2) continue;
+          dummy.position.set(x, y, 0);
+          dummy.updateMatrix();
+          instMesh.setMatrixAt(idx, dummy.matrix);
+          color.set(brickColors[(row * 7 + col * 3) % brickColors.length]);
+          instMesh.setColorAt(idx, color);
+          idx++;
+        }
+      }
+      instMesh.count = idx;
+      instMesh.instanceMatrix.needsUpdate = true;
+      if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
+
+      const wallObj = new THREE.Group();
+      wallObj.add(instMesh);
+
+      // Gold trim on top
+      const trimGeo = new THREE.BoxGeometry(wallWidth + 0.1, 0.1, wallDepth + 0.06);
+      const trimMat = new THREE.MeshStandardMaterial({
+        color: 0xd4a44a, metalness: 0.6, roughness: 0.3,
+      });
+      const trim = new THREE.Mesh(trimGeo, trimMat);
+      trim.position.y = wallHeight + 0.05;
+      trim.castShadow = true;
+      wallObj.add(trim);
+
+      wallObj.position.copy(position);
+      if (rotationY) wallObj.rotation.y = rotationY;
+      return wallObj;
+    };
+
+    // ── Back wall ──
+    const backWidth = C.TABLE_WIDTH + C.WALL_THICKNESS * 2;
+    const backWall = buildBrickWall(
+      backWidth, C.WALL_HEIGHT, C.WALL_THICKNESS,
+      new THREE.Vector3(0, 0, -C.TABLE_DEPTH / 2 - C.WALL_THICKNESS / 2),
+      0
     );
-    const back = new THREE.Mesh(backGeo, mat);
-    back.position.set(0, C.WALL_HEIGHT / 2, -C.TABLE_DEPTH / 2 - C.WALL_THICKNESS / 2);
-    back.castShadow = true;
-    back.receiveShadow = true;
-    this.wallGroup.add(back);
-    walls.push(back);
+    this.wallGroup.add(backWall);
+    wallMeshes.push(backWall);
 
-    // Left wall
-    const sideGeo = new THREE.BoxGeometry(
-      C.WALL_THICKNESS,
-      C.WALL_HEIGHT,
-      C.TABLE_DEPTH
+    // ── Left wall ──
+    const leftWall = buildBrickWall(
+      C.TABLE_DEPTH, C.WALL_HEIGHT, C.WALL_THICKNESS,
+      new THREE.Vector3(-C.TABLE_WIDTH / 2 - C.WALL_THICKNESS / 2, 0, 0),
+      Math.PI / 2
     );
-    const left = new THREE.Mesh(sideGeo, mat);
-    left.position.set(-C.TABLE_WIDTH / 2 - C.WALL_THICKNESS / 2, C.WALL_HEIGHT / 2, 0);
-    left.castShadow = true;
-    left.receiveShadow = true;
-    this.wallGroup.add(left);
-    walls.push(left);
+    this.wallGroup.add(leftWall);
+    wallMeshes.push(leftWall);
 
-    // Right wall
-    const right = new THREE.Mesh(sideGeo, mat);
-    right.position.set(C.TABLE_WIDTH / 2 + C.WALL_THICKNESS / 2, C.WALL_HEIGHT / 2, 0);
-    right.castShadow = true;
-    right.receiveShadow = true;
-    this.wallGroup.add(right);
-    walls.push(right);
+    // ── Right wall ──
+    const rightWall = buildBrickWall(
+      C.TABLE_DEPTH, C.WALL_HEIGHT, C.WALL_THICKNESS,
+      new THREE.Vector3(C.TABLE_WIDTH / 2 + C.WALL_THICKNESS / 2, 0, 0),
+      -Math.PI / 2
+    );
+    this.wallGroup.add(rightWall);
+    wallMeshes.push(rightWall);
 
-    // Apply same tilt
+    // ── Question block decorations on left/right walls ──
+    const qBlockGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const qBlockMat = new THREE.MeshStandardMaterial({
+      color: 0xfbd000, metalness: 0.2, roughness: 0.7,
+      emissive: 0xfbd000, emissiveIntensity: 0.1,
+    });
+    const qBlockPositions = [
+      { x: -C.TABLE_WIDTH / 2 - 0.15, y: C.WALL_HEIGHT + 0.35, z: -2 },
+      { x: -C.TABLE_WIDTH / 2 - 0.15, y: C.WALL_HEIGHT + 0.35, z: 3 },
+      { x: C.TABLE_WIDTH / 2 + 0.15, y: C.WALL_HEIGHT + 0.35, z: -2 },
+      { x: C.TABLE_WIDTH / 2 + 0.15, y: C.WALL_HEIGHT + 0.35, z: 3 },
+    ];
+    for (const pos of qBlockPositions) {
+      const qBlock = new THREE.Mesh(qBlockGeo, qBlockMat);
+      qBlock.position.set(pos.x, pos.y, pos.z);
+      qBlock.castShadow = true;
+      this.wallGroup.add(qBlock);
+    }
+
+    // ── Small pipe decorations at front corners ──
+    const createMiniPipe = (x, z) => {
+      const pipeGroup = new THREE.Group();
+      const bodyGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.8, 10);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x43b047, metalness: 0.2, roughness: 0.7 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 0.4;
+      pipeGroup.add(body);
+      const lipGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.15, 10);
+      const lipMat = new THREE.MeshStandardMaterial({ color: 0x2d8a2d, metalness: 0.2, roughness: 0.6 });
+      const lip = new THREE.Mesh(lipGeo, lipMat);
+      lip.position.y = 0.85;
+      pipeGroup.add(lip);
+      pipeGroup.position.set(x, 0, z);
+      return pipeGroup;
+    };
+    this.wallGroup.add(createMiniPipe(-C.TABLE_WIDTH / 2 + 0.3, C.TABLE_DEPTH / 2 - 0.3));
+    this.wallGroup.add(createMiniPipe(C.TABLE_WIDTH / 2 - 0.3, C.TABLE_DEPTH / 2 - 0.3));
+
+    // Apply table tilt
     this.wallGroup.rotation.x = -C.TABLE_TILT_RAD;
     this.scene.add(this.wallGroup);
 
-    return walls;
+    return wallMeshes;
   }
 
-  createPusher() {
-    // Mario brick-style pusher — main body + top trim + brick lines
+  createPusherMesh(width, height, depth, color) {
     const group = new THREE.Group();
 
     // Main body
-    const bodyGeo = new THREE.BoxGeometry(C.PUSHER_WIDTH, C.PUSHER_HEIGHT, C.PUSHER_DEPTH);
+    const bodyGeo = new THREE.BoxGeometry(width, height, depth);
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0xc4713b,   // warm brick orange
+      color,
       metalness: 0.15,
       roughness: 0.85,
     });
@@ -210,29 +319,33 @@ export class Renderer3D {
     group.add(bodyMesh);
 
     // Top metallic trim
-    const trimGeo = new THREE.BoxGeometry(C.PUSHER_WIDTH + 0.05, 0.08, C.PUSHER_DEPTH + 0.05);
+    const trimGeo = new THREE.BoxGeometry(width + 0.05, 0.08, depth + 0.05);
     const trimMat = new THREE.MeshStandardMaterial({
       color: 0xd4a44a,
       metalness: 0.6,
       roughness: 0.3,
     });
     const trim = new THREE.Mesh(trimGeo, trimMat);
-    trim.position.y = C.PUSHER_HEIGHT / 2 + 0.04;
+    trim.position.y = height / 2 + 0.04;
     trim.castShadow = true;
     group.add(trim);
 
     // Front face accent (push face — brighter)
-    const frontGeo = new THREE.BoxGeometry(C.PUSHER_WIDTH, C.PUSHER_HEIGHT * 0.8, 0.04);
+    const accentColor = new THREE.Color(color).offsetHSL(0, 0, 0.08);
+    const frontGeo = new THREE.BoxGeometry(width, height * 0.8, 0.04);
     const frontMat = new THREE.MeshStandardMaterial({
-      color: 0xe08840,
+      color: accentColor,
       metalness: 0.2,
       roughness: 0.7,
-      emissive: 0xe08840,
+      emissive: accentColor,
       emissiveIntensity: 0.05,
     });
     const front = new THREE.Mesh(frontGeo, frontMat);
-    front.position.z = C.PUSHER_DEPTH / 2 + 0.02;
+    front.position.z = depth / 2 + 0.02;
     group.add(front);
+
+    // Store original width for scaling reference
+    group.userData.baseWidth = width;
 
     this.scene.add(group);
     return group;
@@ -251,6 +364,75 @@ export class Renderer3D {
     mesh.position.set(0, -2 - frontDrop, C.TABLE_DEPTH / 2 + 1.5);
     mesh.receiveShadow = true;
     this.scene.add(mesh);
+  }
+
+  createCoinTextures() {
+    const size = 128;
+
+    // ── Top face: gold disc with star ──
+    const topCanvas = document.createElement('canvas');
+    topCanvas.width = topCanvas.height = size;
+    const topCtx = topCanvas.getContext('2d');
+    // Gold background
+    const topGrad = topCtx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+    topGrad.addColorStop(0, '#ffe566');
+    topGrad.addColorStop(0.7, '#ffc107');
+    topGrad.addColorStop(1, '#b8860b');
+    topCtx.fillStyle = topGrad;
+    topCtx.beginPath();
+    topCtx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+    topCtx.fill();
+    // Inner ring
+    topCtx.strokeStyle = '#b8860b';
+    topCtx.lineWidth = 3;
+    topCtx.beginPath();
+    topCtx.arc(size/2, size/2, size * 0.38, 0, Math.PI * 2);
+    topCtx.stroke();
+    // Star
+    topCtx.fillStyle = '#b8860b';
+    topCtx.beginPath();
+    const cx = size/2, cy = size/2, outerR = size * 0.25, innerR = size * 0.1;
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const angle = (i * Math.PI / 5) - Math.PI / 2;
+      const px = cx + r * Math.cos(angle);
+      const py = cy + r * Math.sin(angle);
+      if (i === 0) topCtx.moveTo(px, py);
+      else topCtx.lineTo(px, py);
+    }
+    topCtx.closePath();
+    topCtx.fill();
+
+    // ── Bottom face: gold disc with M ──
+    const botCanvas = document.createElement('canvas');
+    botCanvas.width = botCanvas.height = size;
+    const botCtx = botCanvas.getContext('2d');
+    // Gold background
+    const botGrad = botCtx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+    botGrad.addColorStop(0, '#ffe566');
+    botGrad.addColorStop(0.7, '#ffc107');
+    botGrad.addColorStop(1, '#b8860b');
+    botCtx.fillStyle = botGrad;
+    botCtx.beginPath();
+    botCtx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+    botCtx.fill();
+    // Inner ring
+    botCtx.strokeStyle = '#b8860b';
+    botCtx.lineWidth = 3;
+    botCtx.beginPath();
+    botCtx.arc(size/2, size/2, size * 0.38, 0, Math.PI * 2);
+    botCtx.stroke();
+    // "M" letter
+    botCtx.fillStyle = '#b8860b';
+    botCtx.font = `bold ${size * 0.45}px serif`;
+    botCtx.textAlign = 'center';
+    botCtx.textBaseline = 'middle';
+    botCtx.fillText('M', size/2, size/2 + 2);
+
+    const topTex = new THREE.CanvasTexture(topCanvas);
+    const botTex = new THREE.CanvasTexture(botCanvas);
+
+    return { top: topTex, bottom: botTex };
   }
 
   createDropIndicator() {
@@ -585,16 +767,21 @@ export class Renderer3D {
       this.tableMesh.material.color.set(sceneConfig.tableColor);
     }
 
-    // Update wall colors
+    // Update wall colors (traverse to find InstancedMesh and other meshes)
     for (const wall of this.wallMeshes) {
-      wall.material.color.set(sceneConfig.wallColor);
+      wall.traverse(child => {
+        if (child.isInstancedMesh) {
+          child.material.color.set(sceneConfig.wallColor);
+        }
+      });
     }
   }
 
   // ─── Pusher width for effects ───
   setPusherWidth(newWidth) {
-    const scale = newWidth / C.PUSHER_WIDTH;
-    this.pusherMesh.scale.x = scale;
+    const baseWidth = this.frontPusherMesh.userData.baseWidth || C.FRONT_PUSHER_WIDTH;
+    const scale = newWidth / baseWidth;
+    this.frontPusherMesh.scale.x = scale;
   }
 
   // ─── Boss Bowser mesh ───
@@ -705,10 +892,15 @@ export class Renderer3D {
     const dt = gameState.dt || 0.016;
     this._time += dt;
 
-    // Sync pusher
-    if (gameState.pusherBody) {
-      this.pusherMesh.position.copy(gameState.pusherBody.position);
-      this.pusherMesh.quaternion.copy(gameState.pusherBody.quaternion);
+    // Sync front pusher
+    if (gameState.frontPusherBody) {
+      this.frontPusherMesh.position.copy(gameState.frontPusherBody.position);
+      this.frontPusherMesh.quaternion.copy(gameState.frontPusherBody.quaternion);
+    }
+    // Sync back pusher
+    if (gameState.backPusherBody) {
+      this.backPusherMesh.position.copy(gameState.backPusherBody.position);
+      this.backPusherMesh.quaternion.copy(gameState.backPusherBody.quaternion);
     }
 
     // Sync coins
@@ -758,7 +950,7 @@ export class Renderer3D {
 
       let mesh = this.coinMeshes.get(coin.id);
       if (!mesh) {
-        mesh = new THREE.Mesh(this.coinGeometry, this.coinMaterial);
+        mesh = new THREE.Mesh(this.coinGeometry, this.coinMaterials);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         this.scene.add(mesh);
@@ -859,7 +1051,9 @@ export class Renderer3D {
     this.hideBoss();
 
     this.coinGeometry.dispose();
-    this.coinMaterial.dispose();
+    for (const mat of this.coinMaterials) mat.dispose();
+    if (this.coinTextures.top) this.coinTextures.top.dispose();
+    if (this.coinTextures.bottom) this.coinTextures.bottom.dispose();
     ItemMeshFactory.dispose();
 
     // Dispose all scene children

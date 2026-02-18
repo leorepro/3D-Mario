@@ -7,7 +7,7 @@ export const TABLE_WIDTH = 8;
 export const TABLE_DEPTH = 14;
 export const TABLE_THICKNESS = 0.5;
 export const TABLE_Y = 0;
-export const TABLE_TILT_DEG = 3; // degrees tilted forward (back higher, front lower)
+export const TABLE_TILT_DEG = 0; // flat table (no tilt)
 export const TABLE_TILT_RAD = TABLE_TILT_DEG * Math.PI / 180;
 
 // ── Walls ──
@@ -15,20 +15,34 @@ export const WALL_HEIGHT = 2;
 export const WALL_THICKNESS = 0.3;
 
 // ── Coin (3D cylinder) ──
-export const COIN_RADIUS = 0.4;
-export const COIN_HEIGHT = 0.22;
-export const COIN_MASS = 0.5;
+export const COIN_RADIUS = 0.6;
+export const COIN_HEIGHT = 0.15;
+export const COIN_MASS = 0.3;
 export const COIN_FRICTION = 0.5;
 export const COIN_RESTITUTION = 0.1;
-export const MAX_COINS = 150;
+export const MAX_COINS = 999;
 
-// ── Pusher ──
-export const PUSHER_WIDTH = TABLE_WIDTH;
-export const PUSHER_DEPTH = 1.2;
-export const PUSHER_HEIGHT = 0.6;
-export const PUSHER_Z_MIN = -TABLE_DEPTH / 2 + PUSHER_DEPTH / 2 + 0.1;
-export const PUSHER_Z_MAX = 1.0;
-export const PUSHER_SPEED = 0.05;
+// ── Back Pusher ──
+export const BACK_PUSHER_WIDTH = TABLE_WIDTH;
+export const BACK_PUSHER_DEPTH = 1.2;
+export const BACK_PUSHER_HEIGHT = 0.8;
+export const BACK_PUSHER_Z_MIN = -TABLE_DEPTH / 2 + BACK_PUSHER_DEPTH / 2 + 0.2;
+export const BACK_PUSHER_Z_MAX = -1.5;
+export const BACK_PUSHER_SPEED = 0.04;
+
+// ── Front Pusher ──
+export const FRONT_PUSHER_WIDTH = TABLE_WIDTH;
+export const FRONT_PUSHER_DEPTH = 1.2;
+export const FRONT_PUSHER_HEIGHT = 1.0;
+export const FRONT_PUSHER_Z_MIN = -0.5;
+export const FRONT_PUSHER_Z_MAX = 5.0;
+export const FRONT_PUSHER_SPEED = 0.05;
+
+// Legacy aliases (used by EffectManager)
+export const PUSHER_WIDTH = FRONT_PUSHER_WIDTH;
+export const PUSHER_DEPTH = FRONT_PUSHER_DEPTH;
+export const PUSHER_HEIGHT = FRONT_PUSHER_HEIGHT;
+export const PUSHER_SPEED = FRONT_PUSHER_SPEED;
 
 // ── Drop Zone ──
 export const DROP_Y = 4;
@@ -51,7 +65,7 @@ export const PHYSICS_MAX_SUBSTEPS = 2;
 // ── Scoring ──
 export const COIN_SCORE_VALUE = 1;
 export const INITIAL_COIN_BALANCE = 1000;
-export const INITIAL_COINS_ON_TABLE = 25;
+export const INITIAL_COINS_ON_TABLE = 18;
 
 // ── Cooldown ──
 export const DROP_COOLDOWN_MS = 500;

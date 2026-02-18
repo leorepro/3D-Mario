@@ -25,11 +25,11 @@ export class PhysicsWorld3D {
   setupContactMaterials() {
     this.world.addContactMaterial(new CANNON.ContactMaterial(
       this.coinMaterial, this.tableMaterial,
-      { friction: 0.4, restitution: 0.15 }
+      { friction: 0.3, restitution: 0.15 }
     ));
     this.world.addContactMaterial(new CANNON.ContactMaterial(
       this.coinMaterial, this.coinMaterial,
-      { friction: 0.3, restitution: 0.2 }
+      { friction: 0.2, restitution: 0.2 }
     ));
     this.world.addContactMaterial(new CANNON.ContactMaterial(
       this.coinMaterial, this.wallMaterial,

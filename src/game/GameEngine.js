@@ -26,8 +26,26 @@ export class GameEngine {
     // 3D Physics world
     this.physics = new PhysicsWorld3D();
 
-    // Pusher (3D kinematic body)
-    this.pusher = new PusherController3D(this.physics);
+    // Dual pusher system
+    this.backPusher = new PusherController3D(this.physics, {
+      width: C.BACK_PUSHER_WIDTH,
+      height: C.BACK_PUSHER_HEIGHT,
+      depth: C.BACK_PUSHER_DEPTH,
+      zMin: C.BACK_PUSHER_Z_MIN,
+      zMax: C.BACK_PUSHER_Z_MAX,
+      speed: C.BACK_PUSHER_SPEED,
+      startDirection: 1,
+    });
+    this.frontPusher = new PusherController3D(this.physics, {
+      width: C.FRONT_PUSHER_WIDTH,
+      height: C.FRONT_PUSHER_HEIGHT,
+      depth: C.FRONT_PUSHER_DEPTH,
+      zMin: C.FRONT_PUSHER_Z_MIN,
+      zMax: C.FRONT_PUSHER_Z_MAX,
+      speed: C.FRONT_PUSHER_SPEED,
+      startDirection: -1,
+    });
+    this.pusher = this.frontPusher; // backward compat for EffectManager
 
     // Coin manager
     this.coinManager = new CoinManager3D(this.physics);
@@ -114,8 +132,9 @@ export class GameEngine {
     // Step physics
     this.physics.step(dt);
 
-    // Update pusher
-    this.pusher.update();
+    // Update both pushers
+    this.backPusher.update();
+    this.frontPusher.update();
 
     // Update effects (auto-expire)
     this.effectManager.update(this);
@@ -136,7 +155,8 @@ export class GameEngine {
 
     // Render
     this.renderer.render({
-      pusherBody: this.pusher.getBody(),
+      frontPusherBody: this.frontPusher.getBody(),
+      backPusherBody: this.backPusher.getBody(),
       coins: this.coinManager.getCoins(),
       items: this.itemManager.getItems(),
       dropX: this.dropX,
@@ -396,12 +416,18 @@ export class GameEngine {
     this.haptic.frenzy();
     this.saveManager.setFrenzyTriggered();
 
-    // Speed up pusher during frenzy
+    // Speed up both pushers during frenzy
     this.effectManager.addEffect({
       type: 'frenzy_speed',
       duration: dur,
-      apply: (engine) => { engine.pusher.setSpeed(C.PUSHER_SPEED * 2); },
-      remove: (engine) => { engine.pusher.resetSpeed(); },
+      apply: (engine) => {
+        engine.frontPusher.setSpeed(C.FRONT_PUSHER_SPEED * 2);
+        engine.backPusher.setSpeed(C.BACK_PUSHER_SPEED * 2);
+      },
+      remove: (engine) => {
+        engine.frontPusher.resetSpeed();
+        engine.backPusher.resetSpeed();
+      },
     }, this);
 
     this.eventBus.emit('frenzy:start', { duration: dur });
@@ -533,38 +559,39 @@ export class GameEngine {
   }
 
   spawnInitialCoins() {
-    const pusherFrontZ = C.PUSHER_Z_MAX + C.PUSHER_DEPTH / 2;
     const tableEdgeZ = C.TABLE_DEPTH / 2;
     const xMin = -C.TABLE_WIDTH / 2 + C.COIN_RADIUS * 2;
     const xMax = C.TABLE_WIDTH / 2 - C.COIN_RADIUS * 2;
 
     const total = C.INITIAL_COINS_ON_TABLE;
-    const frontStackCount = Math.floor(total * 0.5);
-    const midCount = Math.floor(total * 0.3);
-    const backCount = total - frontStackCount - midCount;
+    const frontZoneCount = Math.floor(total * 0.4);
+    const backZoneCount = Math.floor(total * 0.3);
+    const edgeCount = total - frontZoneCount - backZoneCount;
 
-    // Front zone: stacked coins near the edge
-    for (let i = 0; i < frontStackCount; i++) {
+    // Front pusher zone: coins between front pusher and table edge
+    const frontPusherFrontZ = C.FRONT_PUSHER_Z_MAX + C.FRONT_PUSHER_DEPTH / 2;
+    for (let i = 0; i < frontZoneCount; i++) {
       const x = xMin + Math.random() * (xMax - xMin);
-      const layer = Math.floor(i / 12);
+      const y = C.COIN_HEIGHT / 2 + 0.1 + Math.random() * 0.5;
+      const z = frontPusherFrontZ + 0.3 + Math.random() * (tableEdgeZ - frontPusherFrontZ - 1.5);
+      this.coinManager.spawnCoin(x, y, z);
+    }
+
+    // Back pusher zone: coins between back pusher and front pusher
+    const backPusherFrontZ = C.BACK_PUSHER_Z_MAX + C.BACK_PUSHER_DEPTH / 2;
+    for (let i = 0; i < backZoneCount; i++) {
+      const x = xMin + Math.random() * (xMax - xMin);
+      const y = C.COIN_HEIGHT / 2 + 0.1 + Math.random() * 0.5;
+      const z = backPusherFrontZ + 0.3 + Math.random() * (C.FRONT_PUSHER_Z_MIN - backPusherFrontZ - 1);
+      this.coinManager.spawnCoin(x, y, z);
+    }
+
+    // Near front edge: coins close to falling off
+    for (let i = 0; i < edgeCount; i++) {
+      const x = xMin + Math.random() * (xMax - xMin);
+      const layer = Math.floor(i / 8);
       const y = C.COIN_HEIGHT / 2 + 0.02 + layer * (C.COIN_HEIGHT + 0.01);
-      const z = tableEdgeZ - 1.0 - Math.random() * 1.5;
-      this.coinManager.spawnCoin(x, y, z);
-    }
-
-    // Middle zone: loose coins
-    for (let i = 0; i < midCount; i++) {
-      const x = xMin + Math.random() * (xMax - xMin);
-      const y = C.COIN_HEIGHT / 2 + 0.1 + Math.random() * 1.5;
-      const z = pusherFrontZ + 0.5 + Math.random() * (tableEdgeZ - pusherFrontZ - 2.5);
-      this.coinManager.spawnCoin(x, y, z);
-    }
-
-    // Back zone: coins right in front of pusher
-    for (let i = 0; i < backCount; i++) {
-      const x = xMin + Math.random() * (xMax - xMin);
-      const y = C.COIN_HEIGHT / 2 + 0.1 + Math.random() * 0.8;
-      const z = pusherFrontZ + C.COIN_RADIUS + Math.random() * 1.5;
+      const z = tableEdgeZ - 0.8 - Math.random() * 1.2;
       this.coinManager.spawnCoin(x, y, z);
     }
   }
