@@ -12,13 +12,19 @@ export class PusherController3D {
       C.PUSHER_DEPTH / 2
     ));
 
+    // Pre-compute tilt quaternion (same as table)
+    this.tiltQ = new CANNON.Quaternion();
+    this.tiltQ.setFromEuler(-C.TABLE_TILT_RAD, 0, 0);
+
+    const initY = C.PUSHER_HEIGHT / 2 - C.PUSHER_Z_MIN * Math.sin(C.TABLE_TILT_RAD);
     this.body = new CANNON.Body({
       mass: 0,
       type: CANNON.Body.KINEMATIC,
       shape,
       material: physicsWorld.pusherMaterial,
-      position: new CANNON.Vec3(0, C.PUSHER_HEIGHT / 2, C.PUSHER_Z_MIN),
+      position: new CANNON.Vec3(0, initY, C.PUSHER_Z_MIN),
     });
+    this.body.quaternion.copy(this.tiltQ);
 
     physicsWorld.addBody(this.body);
 
@@ -40,9 +46,10 @@ export class PusherController3D {
       this.direction = 1;
     }
 
-    // Pusher rides on the tilted table surface
+    // Pusher rides on the tilted table surface (parallel to table)
     const yOnSlope = C.PUSHER_HEIGHT / 2 - this.currentZ * Math.sin(C.TABLE_TILT_RAD);
     this.body.position.set(0, yOnSlope, this.currentZ);
+    this.body.quaternion.copy(this.tiltQ);
     this.body.velocity.set(0, 0, this.speed * this.direction * 60);
   }
 
