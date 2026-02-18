@@ -328,35 +328,96 @@ export class Renderer3D {
       refs.scrollables.push({ mesh, speed: hc.speed, xMin: -45, xMax: 45, startX: hc.x });
     }
 
-    // ── Clouds (medium parallax layer, faster than hills) ──
-    const cloudMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff, transparent: true, opacity: 0.85,
-    });
+    // ── Clouds (medium parallax layer) — varied shapes & tints ──
+    const sphereGeo = new THREE.SphereGeometry(1, 8, 6);
 
-    const createCloud = (x, y, z, scale, speed) => {
-      const group = new THREE.Group();
-      const s = new THREE.SphereGeometry(1, 8, 6);
-      const c1 = new THREE.Mesh(s, cloudMat);
-      c1.scale.set(1.5, 0.8, 1);
-      const c2 = new THREE.Mesh(s, cloudMat);
-      c2.position.set(1.2, 0.3, 0);
-      c2.scale.set(1.2, 0.7, 0.9);
-      const c3 = new THREE.Mesh(s, cloudMat);
-      c3.position.set(-1.1, 0.2, 0);
-      c3.scale.set(1.0, 0.6, 0.8);
-      group.add(c1, c2, c3);
-      group.position.set(x, y, z);
-      group.scale.setScalar(scale);
+    // Cloud shape builders — each returns a THREE.Group
+    const cloudShapes = [
+      // Type A: wide & puffy (classic Mario cloud)
+      (mat) => {
+        const g = new THREE.Group();
+        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.8, 0.9, 1);
+        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(1.3, 0.4, 0); c2.scale.set(1.3, 0.8, 0.9);
+        const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-1.2, 0.3, 0); c3.scale.set(1.1, 0.7, 0.9);
+        const c4 = new THREE.Mesh(sphereGeo, mat); c4.position.set(0, 0.5, 0); c4.scale.set(1.0, 0.7, 0.8);
+        g.add(c1, c2, c3, c4);
+        return g;
+      },
+      // Type B: tall & narrow tower cloud
+      (mat) => {
+        const g = new THREE.Group();
+        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.0, 1.2, 0.9);
+        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(0.5, 0.7, 0); c2.scale.set(0.9, 1.0, 0.8);
+        const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-0.4, 0.5, 0.2); c3.scale.set(0.8, 0.8, 0.7);
+        g.add(c1, c2, c3);
+        return g;
+      },
+      // Type C: flat & stretched wispy cloud
+      (mat) => {
+        const g = new THREE.Group();
+        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(2.2, 0.4, 0.8);
+        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(1.6, 0.1, 0); c2.scale.set(1.4, 0.35, 0.7);
+        const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-1.5, 0.08, 0); c3.scale.set(1.2, 0.3, 0.6);
+        g.add(c1, c2, c3);
+        return g;
+      },
+      // Type D: small round puff (single fluffy ball)
+      (mat) => {
+        const g = new THREE.Group();
+        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.1, 0.9, 1.0);
+        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(0.6, 0.25, 0); c2.scale.set(0.7, 0.6, 0.7);
+        g.add(c1, c2);
+        return g;
+      },
+      // Type E: big chunky cumulus
+      (mat) => {
+        const g = new THREE.Group();
+        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.6, 1.1, 1);
+        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(1.0, 0.3, 0.2); c2.scale.set(1.3, 0.9, 0.8);
+        const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-0.9, 0.2, -0.1); c3.scale.set(1.1, 0.8, 0.9);
+        const c4 = new THREE.Mesh(sphereGeo, mat); c4.position.set(0.2, 0.7, 0); c4.scale.set(1.0, 0.6, 0.7);
+        const c5 = new THREE.Mesh(sphereGeo, mat); c5.position.set(-0.3, -0.1, 0.3); c5.scale.set(0.9, 0.5, 0.8);
+        g.add(c1, c2, c3, c4, c5);
+        return g;
+      },
+    ];
+
+    // Different cloud tints
+    const cloudTints = [
+      { color: 0xffffff, opacity: 0.9 },   // pure white
+      { color: 0xe8f0ff, opacity: 0.85 },   // icy blue-white
+      { color: 0xfff0e0, opacity: 0.8 },    // warm sunset cream
+      { color: 0xffd6e8, opacity: 0.75 },   // sakura pink
+      { color: 0xd4f0ff, opacity: 0.85 },   // sky blue
+      { color: 0xfff8cc, opacity: 0.8 },    // lemon yellow
+      { color: 0xe0ffe0, opacity: 0.7 },    // mint green tint
+    ];
+
+    const cloudConfigs = [
+      { x: -12,  y: 10,   z: -15, scale: 1.2, speed: 0.4,  shape: 0, tint: 0 },
+      { x: 3,    y: 11,   z: -17, scale: 0.9, speed: 0.35, shape: 2, tint: 1 },
+      { x: 18,   y: 9,    z: -14, scale: 0.7, speed: 0.45, shape: 3, tint: 3 },
+      { x: -25,  y: 10.5, z: -16, scale: 1.0, speed: 0.38, shape: 1, tint: 2 },
+      { x: 30,   y: 11.5, z: -18, scale: 0.8, speed: 0.42, shape: 4, tint: 0 },
+      { x: -35,  y: 9.5,  z: -15, scale: 0.6, speed: 0.32, shape: 2, tint: 4 },
+      { x: 40,   y: 10,   z: -16, scale: 1.1, speed: 0.36, shape: 0, tint: 5 },
+      { x: -5,   y: 12,   z: -19, scale: 0.5, speed: 0.28, shape: 3, tint: 6 },
+      { x: 25,   y: 12.5, z: -20, scale: 0.7, speed: 0.25, shape: 1, tint: 3 },
+    ];
+
+    for (const cc of cloudConfigs) {
+      const tint = cloudTints[cc.tint % cloudTints.length];
+      const mat = new THREE.MeshBasicMaterial({
+        color: tint.color, transparent: true, opacity: tint.opacity,
+      });
+      const builder = cloudShapes[cc.shape % cloudShapes.length];
+      const group = builder(mat);
+      group.position.set(cc.x, cc.y, cc.z);
+      group.scale.setScalar(cc.scale);
       this.scene.add(group);
       refs.clouds.push(group);
-      refs.scrollables.push({ mesh: group, speed, xMin: -40, xMax: 40, startX: x });
-    };
-
-    createCloud(-12, 10, -15, 1.2, 0.4);
-    createCloud(3, 11, -17, 0.9, 0.35);
-    createCloud(18, 9, -14, 0.7, 0.45);
-    createCloud(-25, 10.5, -16, 1.0, 0.38);
-    createCloud(30, 11.5, -18, 0.8, 0.42);
+      refs.scrollables.push({ mesh: group, speed: cc.speed, xMin: -50, xMax: 50, startX: cc.x });
+    }
 
     // ── Mario-style foreground decorations (fast parallax) ──
 
@@ -440,6 +501,47 @@ export class Renderer3D {
     createBush(5, -12, 0.8, 0.55);
     createBush(22, -10, 1.2, 0.55);
     createBush(-22, -12, 0.9, 0.55);
+
+    // ── Floating background stars (slow twinkle layer) ──
+    const starGeo = new THREE.OctahedronGeometry(0.3, 0);
+    const starConfigs = [
+      { x: -30, y: 8,  z: -13, color: 0xfbd000, scale: 0.8, speed: 0.3 },
+      { x: 15,  y: 13, z: -19, color: 0xffffff, scale: 0.5, speed: 0.2 },
+      { x: -8,  y: 14, z: -20, color: 0xffd6e8, scale: 0.6, speed: 0.22 },
+      { x: 35,  y: 7,  z: -12, color: 0xfbd000, scale: 0.7, speed: 0.33 },
+      { x: -18, y: 12, z: -18, color: 0xd4f0ff, scale: 0.4, speed: 0.18 },
+      { x: 42,  y: 11, z: -17, color: 0xfff8cc, scale: 0.55, speed: 0.26 },
+    ];
+    for (const sc of starConfigs) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: sc.color, transparent: true, opacity: 0.9,
+      });
+      const mesh = new THREE.Mesh(starGeo, mat);
+      mesh.position.set(sc.x, sc.y, sc.z);
+      mesh.scale.setScalar(sc.scale);
+      mesh.rotation.y = Math.random() * Math.PI;
+      this.scene.add(mesh);
+      refs.scrollables.push({ mesh, speed: sc.speed, xMin: -50, xMax: 50, startX: sc.x });
+    }
+
+    // ── Rainbow arc (static, slow drift) ──
+    const rainbowColors = [0xe52521, 0xff8c00, 0xfbd000, 0x43b047, 0x049cd8, 0x6b3fa0];
+    const rainbowGroup = new THREE.Group();
+    for (let i = 0; i < rainbowColors.length; i++) {
+      const radius = 8 - i * 0.5;
+      const tubeR = 0.2;
+      const arcGeo = new THREE.TorusGeometry(radius, tubeR, 8, 32, Math.PI);
+      const arcMat = new THREE.MeshBasicMaterial({
+        color: rainbowColors[i], transparent: true, opacity: 0.35,
+      });
+      const arc = new THREE.Mesh(arcGeo, arcMat);
+      rainbowGroup.add(arc);
+    }
+    rainbowGroup.position.set(28, 2, -21);
+    rainbowGroup.rotation.z = 0;
+    rainbowGroup.scale.set(1.0, 0.7, 1);
+    this.scene.add(rainbowGroup);
+    refs.scrollables.push({ mesh: rainbowGroup, speed: 0.12, xMin: -50, xMax: 55, startX: 28 });
 
     return refs;
   }
