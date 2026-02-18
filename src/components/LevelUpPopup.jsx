@@ -1,5 +1,20 @@
 import { useEffect, useState } from 'react';
 
+const UNLOCK_NAMES = {
+  question_block: '? 問號磚塊',
+  star: '超級星星',
+  mushroom: '超級蘑菇',
+  poison_mushroom: '毒蘑菇',
+  coin_tower: '金幣塔',
+  fire_flower: '火焰花',
+  green_pipe: '綠色水管',
+  underground_scene: '地下場景',
+  castle_scene: '城堡場景',
+  boss_mode: '魔王模式',
+  underwater_scene: '水中場景',
+  custom_pusher: '自訂推板',
+};
+
 export function LevelUpPopup({ levelEvent }) {
   const [visible, setVisible] = useState(false);
   const [display, setDisplay] = useState(null);
@@ -9,7 +24,7 @@ export function LevelUpPopup({ levelEvent }) {
 
     setDisplay({
       level: levelEvent.newLevel,
-      unlocks: levelEvent.unlockedItems || [],
+      unlocks: (levelEvent.unlockedItems || []).map(id => UNLOCK_NAMES[id] || id),
     });
     setVisible(true);
 
@@ -25,24 +40,24 @@ export function LevelUpPopup({ levelEvent }) {
         className="text-center"
         style={{ animation: 'levelUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}
       >
-        <div className="text-5xl mb-1">\u2B50</div>
+        <div className="text-5xl mb-1">⭐</div>
         <div
           className="font-black text-3xl text-mario-yellow"
           style={{ textShadow: '0 0 20px #fbd000, 0 2px 4px rgba(0,0,0,0.8)' }}
         >
-          LEVEL UP!
+          升級了！
         </div>
         <div
           className="font-bold text-xl text-white mt-1"
           style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}
         >
-          Level {display.level}
+          等級 {display.level}
         </div>
         {display.unlocks.length > 0 && (
           <div className="mt-2 bg-black/60 rounded-lg px-3 py-1">
-            <div className="text-mario-green text-xs font-bold">Unlocked:</div>
+            <div className="text-mario-green text-xs font-bold">解鎖：</div>
             <div className="text-white text-xs">
-              {display.unlocks.join(', ')}
+              {display.unlocks.join('、')}
             </div>
           </div>
         )}

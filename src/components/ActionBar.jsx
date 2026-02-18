@@ -23,7 +23,7 @@ export function ActionBar({
                    active:scale-95 transition-transform cursor-pointer
                    shadow-lg hover:brightness-110"
       >
-        {'\uD83C\uDFAF'} DROP
+        {'\uD83C\uDFAF'} 投幣
       </button>
 
       <button
@@ -38,7 +38,7 @@ export function ActionBar({
                        : 'bg-emerald-600 text-white hover:brightness-110'
                    }`}
       >
-        {autoDropping ? '\u23F8 STOP' : '\uD83D\uDD04 AUTO'}
+        {autoDropping ? '\u23F8 停止' : '\uD83D\uDD04 自動'}
       </button>
 
       {/* Boss button (when unlocked & available) */}
@@ -48,7 +48,7 @@ export function ActionBar({
           className="px-2 py-2 rounded-xl text-sm cursor-pointer
                      active:scale-95 transition-transform bg-red-800 hover:bg-red-700
                      text-white font-bold"
-          title="Fight Bowser!"
+          title="挑戰庫巴！"
         >
           {'\uD83D\uDC22'}
         </button>
@@ -58,7 +58,7 @@ export function ActionBar({
         onClick={onToggleAudio}
         className="px-2 py-2 rounded-xl text-base cursor-pointer
                    active:scale-95 transition-transform bg-white/10 hover:bg-white/20"
-        title={audioEnabled ? 'Mute' : 'Unmute'}
+        title={audioEnabled ? '靜音' : '開啟聲音'}
       >
         {audioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'}
       </button>
@@ -67,7 +67,7 @@ export function ActionBar({
         onClick={onOpenSettings}
         className="px-2 py-2 rounded-xl text-base cursor-pointer
                    active:scale-95 transition-transform bg-white/10 hover:bg-white/20"
-        title="Settings"
+        title="設定"
       >
         {'\u2699\uFE0F'}
       </button>
@@ -76,7 +76,7 @@ export function ActionBar({
         onClick={onOpenLeaderboard}
         className="px-2 py-2 rounded-xl text-base cursor-pointer
                    active:scale-95 transition-transform bg-white/10 hover:bg-white/20"
-        title="Leaderboard"
+        title="排行榜"
       >
         {'\uD83C\uDFC6'}
       </button>

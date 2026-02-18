@@ -24,8 +24,8 @@ export function BossOverlay({ bossActive, bossHP, bossMaxHP, onAbort }) {
       <div className="mx-2 bg-black/80 rounded-lg px-3 py-1.5">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1">
-            <span className="text-base">{'\uD83D\uDC22'}</span>
-            <span className="text-white font-bold text-xs">BOWSER</span>
+            <span className="text-base">🐢</span>
+            <span className="text-white font-bold text-xs">庫巴 BOSS</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-white text-xs font-mono">
@@ -36,7 +36,7 @@ export function BossOverlay({ bossActive, bossHP, bossMaxHP, onAbort }) {
               className="pointer-events-auto text-red-400 text-[10px] font-bold px-1.5 py-0.5
                          bg-red-900/40 rounded hover:bg-red-900/60 cursor-pointer"
             >
-              FLEE
+              逃跑
             </button>
           </div>
         </div>

@@ -19,7 +19,7 @@ export function HUD({ score, coinBalance, chain, multiplier, level, xpProgress }
         )}
 
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-300">SCORE</span>
+          <span className="text-sm text-gray-300">分數</span>
           <span className="text-mario-yellow font-bold text-lg">{score}</span>
         </div>
       </div>
@@ -27,7 +27,7 @@ export function HUD({ score, coinBalance, chain, multiplier, level, xpProgress }
       {/* Level + XP bar */}
       <div className="flex items-center gap-2 px-4 pb-1.5">
         <div className="flex items-center gap-1 shrink-0">
-          <span className="text-mario-yellow text-[10px] font-black">Lv.{level || 1}</span>
+          <span className="text-mario-yellow text-[10px] font-black">等級 {level || 1}</span>
         </div>
         <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
           <div

@@ -4,7 +4,7 @@ export const VIEWPORT_HEIGHT = 600;
 
 // ── 3D World Dimensions ──
 export const TABLE_WIDTH = 8;
-export const TABLE_DEPTH = 10;
+export const TABLE_DEPTH = 14;
 export const TABLE_THICKNESS = 0.5;
 export const TABLE_Y = 0;
 
@@ -25,19 +25,19 @@ export const PUSHER_WIDTH = TABLE_WIDTH;
 export const PUSHER_DEPTH = 1.2;
 export const PUSHER_HEIGHT = 0.6;
 export const PUSHER_Z_MIN = -TABLE_DEPTH / 2 + PUSHER_DEPTH / 2 + 0.1;
-export const PUSHER_Z_MAX = 2.5;
+export const PUSHER_Z_MAX = -2.0;
 export const PUSHER_SPEED = 0.06;
 
 // ── Drop Zone ──
 export const DROP_Y = 5;
-export const DROP_Z = -1;
+export const DROP_Z = -2;
 export const DROP_X_RANGE = 3.5;
 
 // ── Collection ──
 export const COLLECTION_Y = -3;
 
 // ── Camera ──
-export const CAMERA_POSITION = { x: 0, y: 12, z: 10 };
+export const CAMERA_POSITION = { x: 0, y: 14, z: 12 };
 export const CAMERA_LOOK_AT = { x: 0, y: 0, z: -1 };
 export const CAMERA_FOV = 45;
 
@@ -58,10 +58,10 @@ export const AUTO_DROP_INTERVAL_MS = 300;
 // ── Chain / Combo ──
 export const CHAIN_WINDOW_MS = 1500;
 export const CHAIN_TIERS = [
-  { minChain: 2,  multiplier: 1.5, label: 'Nice!',         color: '#43b047' },
-  { minChain: 5,  multiplier: 2.0, label: 'Great!',        color: '#049cd8' },
-  { minChain: 10, multiplier: 3.0, label: 'Amazing!',      color: '#fbd000' },
-  { minChain: 20, multiplier: 5.0, label: 'SUPER MARIO!',  color: '#e52521' },
+  { minChain: 2,  multiplier: 1.5, label: '不錯！',          color: '#43b047' },
+  { minChain: 5,  multiplier: 2.0, label: '太棒了！',       color: '#049cd8' },
+  { minChain: 10, multiplier: 3.0, label: '超厲害！',       color: '#fbd000' },
+  { minChain: 20, multiplier: 5.0, label: '超級瑪利歐！',   color: '#e52521' },
 ];
 
 // ── Coin Recovery ──

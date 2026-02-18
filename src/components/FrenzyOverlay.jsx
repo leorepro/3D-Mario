@@ -33,7 +33,6 @@ export function FrenzyOverlay({ frenzyActive, frenzyEndTime }) {
         }}
       />
 
-      {/* GOLDEN FRENZY text */}
       <div className="absolute top-16 left-1/2 -translate-x-1/2">
         <div
           className="font-black text-xl text-mario-yellow"
@@ -42,7 +41,7 @@ export function FrenzyOverlay({ frenzyActive, frenzyEndTime }) {
             animation: 'frenzyText 0.3s ease-in-out infinite alternate',
           }}
         >
-          GOLDEN FRENZY! {secs}s
+          🔥 黃金狂熱！{secs}秒
         </div>
       </div>
     </div>

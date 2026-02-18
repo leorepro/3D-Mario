@@ -52,7 +52,7 @@ export function ChainPopup({ chainEvent }) {
               textShadow: '0 1px 3px rgba(0,0,0,0.8)',
             }}
           >
-            {display.chain} Chain
+            {display.chain} 連擊
           </span>
           <span
             className="bg-black/60 text-white font-bold px-2 py-0.5 rounded text-sm"

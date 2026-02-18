@@ -6,6 +6,17 @@ const SLICE_COLORS = [
   '#ff6600', '#9b59b6', '#ffc107', '#00bcd4',
 ];
 
+const PRIZE_LABELS_ZH = {
+  coins_10: '10 金幣',
+  coins_25: '25 金幣',
+  coins_50: '50 金幣',
+  star_item: '超級星星',
+  mushroom: '蘑菇',
+  fire: '火焰花',
+  frenzy: '狂熱！',
+  nothing: '再試一次',
+};
+
 const wheel = new LuckyWheel();
 
 export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
@@ -39,7 +50,7 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70">
       <div className="bg-gray-900 rounded-2xl p-4 w-[320px] text-center">
         <h2 className="text-mario-yellow font-black text-lg mb-3">
-          LUCKY WHEEL!
+          🎰 幸運轉盤！
         </h2>
 
         {/* Wheel */}
@@ -60,25 +71,31 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
               ).join(', ')})`,
             }}
           >
-            {/* Slot labels */}
+            {/* Slot labels — radial text, flipped in bottom half to stay readable */}
             {slots.map((slot, i) => {
-              const angle = (i + 0.5) * (360 / slots.length);
+              const sliceAngle = 360 / slots.length;
+              const midAngle = i * sliceAngle + sliceAngle / 2;
+              const isBottom = midAngle > 90 && midAngle < 270;
+              const textAngle = isBottom ? midAngle + 180 : midAngle;
+              const radius = isBottom ? 55 : 75;
+              const rad = ((midAngle - 90) * Math.PI) / 180;
+              const x = 120 + Math.cos(rad) * radius;
+              const y = 120 + Math.sin(rad) * radius;
+              const label = PRIZE_LABELS_ZH[slot.id] || slot.label;
+
               return (
                 <div
                   key={i}
-                  className="absolute text-[10px] font-bold text-white"
+                  className="absolute text-[9px] font-bold text-white pointer-events-none"
                   style={{
-                    top: '50%',
-                    left: '50%',
-                    transform: `rotate(${angle}deg) translate(0, -80px) rotate(-${angle}deg)`,
-                    textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                    transformOrigin: '0 0',
+                    left: `${x}px`,
+                    top: `${y}px`,
+                    transform: `translate(-50%, -50%) rotate(${textAngle}deg)`,
+                    textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)',
                     whiteSpace: 'nowrap',
-                    marginLeft: '-20px',
-                    marginTop: '-6px',
                   }}
                 >
-                  {slot.label}
+                  {label}
                 </div>
               );
             })}
@@ -88,8 +105,10 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
         {/* Result */}
         {result && (
           <div className="bg-black/50 rounded-lg px-3 py-2 mb-3 animate-bounce">
-            <div className="text-white font-bold text-sm">You won:</div>
-            <div className="text-mario-yellow font-black text-base">{result.prize.label}</div>
+            <div className="text-white font-bold text-sm">恭喜獲得：</div>
+            <div className="text-mario-yellow font-black text-base">
+              {PRIZE_LABELS_ZH[result.prize.id] || result.prize.label}
+            </div>
           </div>
         )}
 
@@ -101,7 +120,7 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
               className="bg-mario-red text-white px-6 py-2 rounded-xl font-bold
                          cursor-pointer hover:brightness-110 active:scale-95 transition-transform"
             >
-              SPIN!
+              轉！
             </button>
           )}
           {result && (
@@ -110,7 +129,7 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
               className="bg-mario-green text-white px-6 py-2 rounded-xl font-bold
                          cursor-pointer hover:brightness-110 active:scale-95 transition-transform"
             >
-              COLLECT
+              領取
             </button>
           )}
           {!spinning && !result && (
@@ -119,7 +138,7 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
               className="bg-gray-600 text-white px-4 py-2 rounded-xl font-bold text-sm
                          cursor-pointer hover:brightness-110"
             >
-              Skip
+              跳過
             </button>
           )}
         </div>

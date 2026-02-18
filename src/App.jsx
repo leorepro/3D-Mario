@@ -28,7 +28,7 @@ class ErrorBoundary extends Component {
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-900 flex items-start justify-center pt-2">
+    <div className="min-h-screen bg-gray-900 flex items-start justify-center overflow-hidden">
       <ErrorBoundary>
         <GameScreen />
       </ErrorBoundary>

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
 const EFFECT_ICONS = {
-  score_multiplier: { icon: '\u2B50', label: 'Star Power', color: '#fbd000' },
-  wider_pusher: { icon: '\uD83C\uDF44', label: 'Super Mushroom', color: '#43b047' },
-  frenzy_speed: { icon: '\uD83D\uDD25', label: 'Frenzy Speed', color: '#ff4500' },
+  score_multiplier: { icon: '⭐', label: '星星加成', color: '#fbd000' },
+  wider_pusher: { icon: '🍄', label: '推板加寬', color: '#43b047' },
+  frenzy_speed: { icon: '🔥', label: '狂熱加速', color: '#ff4500' },
 };
 
 export function ActiveEffects({ engineRef }) {
@@ -24,7 +24,7 @@ export function ActiveEffects({ engineRef }) {
   return (
     <div className="absolute top-12 left-2 z-10 flex flex-col gap-1">
       {effects.map((e, i) => {
-        const info = EFFECT_ICONS[e.type] || { icon: '\u2728', label: e.type, color: '#fff' };
+        const info = EFFECT_ICONS[e.type] || { icon: '✨', label: e.type, color: '#fff' };
         const pct = Math.max(0, e.remaining / e.duration);
         const secs = Math.ceil(e.remaining / 1000);
         return (
@@ -47,7 +47,7 @@ export function ActiveEffects({ engineRef }) {
                 />
               </div>
             </div>
-            <span className="text-white text-xs font-mono">{secs}s</span>
+            <span className="text-white text-xs font-mono">{secs}秒</span>
           </div>
         );
       })}

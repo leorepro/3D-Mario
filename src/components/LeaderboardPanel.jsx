@@ -5,7 +5,7 @@ export function LeaderboardPanel({ visible, onClose, leaderboard }) {
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70">
       <div className="bg-gray-900 rounded-2xl p-4 w-[300px]">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-white font-black text-lg">{'\uD83C\uDFC6'} Leaderboard</h2>
+          <h2 className="text-white font-black text-lg">{'\uD83C\uDFC6'} 排行榜</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white text-xl cursor-pointer"
@@ -16,7 +16,7 @@ export function LeaderboardPanel({ visible, onClose, leaderboard }) {
 
         {(!leaderboard || leaderboard.length === 0) ? (
           <div className="text-gray-500 text-center py-6 text-sm">
-            No scores yet. Play to add entries!
+            還沒有分數紀錄，快來玩吧！
           </div>
         ) : (
           <div className="space-y-1.5 max-h-[300px] overflow-y-auto">

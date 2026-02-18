@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
 
-const ITEM_ICONS = {
-  question_block: '\u2753',
-  star: '\u2B50',
-  mushroom: '\uD83C\uDF44',
-  coin_tower: '\uD83C\uDFF0',
-  fire_flower: '\uD83D\uDD25',
-  green_pipe: '\uD83D\uDFE2',
-  poison_mushroom: '\uD83D\uDC80',
+const ITEM_INFO = {
+  question_block: { icon: '❓', name: '? 問號磚塊' },
+  star: { icon: '⭐', name: '超級星星' },
+  mushroom: { icon: '🍄', name: '超級蘑菇' },
+  coin_tower: { icon: '🏰', name: '金幣塔' },
+  fire_flower: { icon: '🔥', name: '火焰花' },
+  green_pipe: { icon: '🟢', name: '綠色水管' },
+  poison_mushroom: { icon: '💀', name: '毒蘑菇' },
 };
 
 const EFFECT_DESC = {
-  random_reward: 'Random Reward!',
-  score_multiplier: 'Score x3!',
-  wider_pusher: 'Wide Pusher!',
-  narrower_pusher: 'Narrow Pusher!',
-  burst_coins: 'Coin Burst!',
-  clear_row: 'Clear Row!',
-  teleport_coins: 'Teleport!',
+  random_reward: '隨機獎勵！',
+  score_multiplier: '得分 ×3！',
+  wider_pusher: '推板加寬！',
+  narrower_pusher: '推板變窄！',
+  burst_coins: '金幣噴發！',
+  clear_row: '清除前排！',
+  teleport_coins: '傳送金幣！',
 };
 
 export function ItemPopup({ itemEvent }) {
@@ -27,9 +27,10 @@ export function ItemPopup({ itemEvent }) {
   useEffect(() => {
     if (!itemEvent) return;
 
+    const info = ITEM_INFO[itemEvent.itemType] || { icon: '✨', name: itemEvent.label };
     setDisplay({
-      icon: ITEM_ICONS[itemEvent.itemType] || '\u2728',
-      label: itemEvent.label,
+      icon: info.icon,
+      label: info.name,
       desc: EFFECT_DESC[itemEvent.effect?.type] || '',
     });
     setVisible(true);

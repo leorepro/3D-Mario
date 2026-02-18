@@ -271,10 +271,11 @@ export class Renderer3D {
   }
 
   createBackground() {
-    const refs = { sky: null, hills: [], clouds: [] };
+    const refs = { sky: null, hills: [], clouds: [], scrollables: [] };
+    // scrollables: { mesh, speed, xMin, xMax, startX } — objects that scroll right-to-left
 
-    // Sky gradient — large back plane
-    const skyGeo = new THREE.PlaneGeometry(60, 30);
+    // ── Sky gradient ──
+    const skyGeo = new THREE.PlaneGeometry(80, 35);
     const skyMat = new THREE.ShaderMaterial({
       uniforms: {
         topColor: { value: new THREE.Color(0x4a90d9) },
@@ -299,47 +300,40 @@ export class Renderer3D {
       depthWrite: false,
     });
     const sky = new THREE.Mesh(skyGeo, skyMat);
-    sky.position.set(0, 8, -20);
+    sky.position.set(0, 8, -22);
     sky.renderOrder = -1;
     this.scene.add(sky);
     refs.sky = sky;
 
-    // Green hills — simple curved shapes
+    // ── Green hills (slow parallax layer) ──
     const hillMat = new THREE.MeshStandardMaterial({
-      color: 0x43b047,
-      roughness: 0.9,
-      metalness: 0.0,
+      color: 0x43b047, roughness: 0.9, metalness: 0.0,
     });
 
-    const hill1Geo = new THREE.SphereGeometry(8, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-    const hill1 = new THREE.Mesh(hill1Geo, hillMat);
-    hill1.position.set(-6, -2, -16);
-    hill1.scale.set(1.5, 0.6, 1);
-    this.scene.add(hill1);
-    refs.hills.push(hill1);
+    const hillConfigs = [
+      { radius: 8, x: -10, y: -2, z: -18, sx: 1.5, sy: 0.6, speed: 0.15 },
+      { radius: 5, x: 5, y: -2, z: -16, sx: 1.2, sy: 0.7, speed: 0.15 },
+      { radius: 6, x: 20, y: -2, z: -17, sx: 1.4, sy: 0.55, speed: 0.15 },
+      { radius: 3, x: -20, y: -2, z: -19, sx: 1.3, sy: 0.5, speed: 0.15 },
+      { radius: 4, x: 35, y: -2, z: -17, sx: 1.1, sy: 0.65, speed: 0.15 },
+    ];
 
-    const hill2Geo = new THREE.SphereGeometry(5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-    const hill2 = new THREE.Mesh(hill2Geo, hillMat);
-    hill2.position.set(8, -2, -14);
-    hill2.scale.set(1.2, 0.7, 1);
-    this.scene.add(hill2);
-    refs.hills.push(hill2);
+    for (const hc of hillConfigs) {
+      const geo = new THREE.SphereGeometry(hc.radius, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      const mesh = new THREE.Mesh(geo, hillMat);
+      mesh.position.set(hc.x, hc.y, hc.z);
+      mesh.scale.set(hc.sx, hc.sy, 1);
+      this.scene.add(mesh);
+      refs.hills.push(mesh);
+      refs.scrollables.push({ mesh, speed: hc.speed, xMin: -45, xMax: 45, startX: hc.x });
+    }
 
-    const hill3Geo = new THREE.SphereGeometry(3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);
-    const hill3 = new THREE.Mesh(hill3Geo, hillMat);
-    hill3.position.set(2, -2, -18);
-    hill3.scale.set(1.3, 0.5, 1);
-    this.scene.add(hill3);
-    refs.hills.push(hill3);
-
-    // Simple white clouds
+    // ── Clouds (medium parallax layer, faster than hills) ──
     const cloudMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.85,
+      color: 0xffffff, transparent: true, opacity: 0.85,
     });
 
-    const createCloud = (x, y, z, scale) => {
+    const createCloud = (x, y, z, scale, speed) => {
       const group = new THREE.Group();
       const s = new THREE.SphereGeometry(1, 8, 6);
       const c1 = new THREE.Mesh(s, cloudMat);
@@ -355,11 +349,97 @@ export class Renderer3D {
       group.scale.setScalar(scale);
       this.scene.add(group);
       refs.clouds.push(group);
+      refs.scrollables.push({ mesh: group, speed, xMin: -40, xMax: 40, startX: x });
     };
 
-    createCloud(-8, 10, -15, 1.2);
-    createCloud(5, 11, -17, 0.9);
-    createCloud(12, 9, -13, 0.7);
+    createCloud(-12, 10, -15, 1.2, 0.4);
+    createCloud(3, 11, -17, 0.9, 0.35);
+    createCloud(18, 9, -14, 0.7, 0.45);
+    createCloud(-25, 10.5, -16, 1.0, 0.38);
+    createCloud(30, 11.5, -18, 0.8, 0.42);
+
+    // ── Mario-style foreground decorations (fast parallax) ──
+
+    // Green Pipe decoration
+    const createPipeDeco = (x, z, height, speed) => {
+      const group = new THREE.Group();
+      const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, height, 12);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x43b047, metalness: 0.2, roughness: 0.7 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = height / 2;
+      group.add(body);
+      const lipGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.2, 12);
+      const lipMat = new THREE.MeshStandardMaterial({ color: 0x2d8a2d, metalness: 0.2, roughness: 0.6 });
+      const lip = new THREE.Mesh(lipGeo, lipMat);
+      lip.position.y = height + 0.1;
+      group.add(lip);
+      const insideGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.08, 12);
+      const insideMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+      const inside = new THREE.Mesh(insideGeo, insideMat);
+      inside.position.y = height + 0.18;
+      group.add(inside);
+      group.position.set(x, -2, z);
+      this.scene.add(group);
+      refs.scrollables.push({ mesh: group, speed, xMin: -40, xMax: 40, startX: x });
+    };
+
+    createPipeDeco(-15, -12, 2.5, 0.6);
+    createPipeDeco(12, -13, 1.8, 0.6);
+    createPipeDeco(30, -11, 3.0, 0.6);
+
+    // Brick block / question block decorations floating in background
+    const createBlockDeco = (x, y, z, isQuestion, speed) => {
+      const geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+      const mat = new THREE.MeshStandardMaterial({
+        color: isQuestion ? 0xfbd000 : 0xc4713b,
+        metalness: 0.15,
+        roughness: 0.75,
+        emissive: isQuestion ? 0xfbd000 : 0x000000,
+        emissiveIntensity: isQuestion ? 0.08 : 0,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      this.scene.add(mesh);
+      refs.scrollables.push({ mesh, speed, xMin: -40, xMax: 40, startX: x });
+    };
+
+    // A row of blocks at different depths
+    createBlockDeco(-18, 6, -12, true, 0.5);
+    createBlockDeco(-16.4, 6, -12, false, 0.5);
+    createBlockDeco(-14.8, 6, -12, false, 0.5);
+    createBlockDeco(-13.2, 6, -12, true, 0.5);
+    createBlockDeco(20, 4, -11, false, 0.55);
+    createBlockDeco(21.6, 4, -11, true, 0.55);
+    createBlockDeco(23.2, 4, -11, false, 0.55);
+
+    // Bushes (small green rounded shapes near ground)
+    const bushMat = new THREE.MeshStandardMaterial({
+      color: 0x2d8a2d, roughness: 0.9, metalness: 0,
+    });
+
+    const createBush = (x, z, scale, speed) => {
+      const group = new THREE.Group();
+      const sg = new THREE.SphereGeometry(0.8, 10, 8);
+      const b1 = new THREE.Mesh(sg, bushMat);
+      b1.scale.set(1.3, 0.7, 1);
+      const b2 = new THREE.Mesh(sg, bushMat);
+      b2.position.set(0.8, -0.1, 0);
+      b2.scale.set(0.9, 0.55, 0.8);
+      const b3 = new THREE.Mesh(sg, bushMat);
+      b3.position.set(-0.7, -0.1, 0);
+      b3.scale.set(0.8, 0.5, 0.8);
+      group.add(b1, b2, b3);
+      group.position.set(x, -1.5, z);
+      group.scale.setScalar(scale);
+      this.scene.add(group);
+      refs.scrollables.push({ mesh: group, speed, xMin: -40, xMax: 40, startX: x });
+    };
+
+    createBush(-8, -11, 1.0, 0.55);
+    createBush(5, -12, 0.8, 0.55);
+    createBush(22, -10, 1.2, 0.55);
+    createBush(-22, -12, 0.9, 0.55);
 
     return refs;
   }
@@ -519,6 +599,17 @@ export class Renderer3D {
 
     // Sync items
     this.syncItems(gameState.items);
+
+    // Animate scrolling background (right-to-left parallax)
+    if (this.bgRefs?.scrollables) {
+      for (const s of this.bgRefs.scrollables) {
+        s.mesh.position.x -= s.speed * dt;
+        // Wrap around when off-screen left → reappear on right
+        if (s.mesh.position.x < s.xMin) {
+          s.mesh.position.x = s.xMax;
+        }
+      }
+    }
 
     // Animate boss
     if (this.bossMesh) {
