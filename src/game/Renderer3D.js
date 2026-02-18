@@ -34,6 +34,7 @@ export class Renderer3D {
     this.pusherMesh = this.createPusherMesh(
       C.PUSHER_WIDTH, C.PUSHER_HEIGHT, C.PUSHER_DEPTH
     );
+    this.createBarrier();
 
     // Coin mesh management
     this.coinMeshes = new Map();
@@ -384,6 +385,42 @@ export class Renderer3D {
     mesh.position.set(0, -2 - frontDrop, C.TABLE_DEPTH / 2 + 1.5);
     mesh.receiveShadow = true;
     this.scene.add(mesh);
+  }
+
+  createBarrier() {
+    // Fixed overhead barrier — stops coins when platform retracts
+    const barrierY = C.PUSHER_HEIGHT + C.BARRIER_HEIGHT / 2 + 0.05;
+    const group = new THREE.Group();
+
+    // Main barrier body (yellow, like the reference toy frame)
+    const bodyGeo = new THREE.BoxGeometry(
+      C.TABLE_WIDTH, C.BARRIER_HEIGHT, C.BARRIER_THICKNESS
+    );
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0xfbd000,    // Mario yellow
+      metalness: 0.3,
+      roughness: 0.4,
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+
+    // Red accent stripe on the front face
+    const stripeGeo = new THREE.BoxGeometry(
+      C.TABLE_WIDTH - 0.2, C.BARRIER_HEIGHT * 0.6, 0.02
+    );
+    const stripeMat = new THREE.MeshStandardMaterial({
+      color: 0xe52521,
+      metalness: 0.1,
+      roughness: 0.7,
+    });
+    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe.position.z = C.BARRIER_THICKNESS / 2 + 0.01;
+    group.add(stripe);
+
+    group.position.set(0, barrierY, C.BARRIER_Z);
+    this.scene.add(group);
   }
 
   createCoinTextures() {

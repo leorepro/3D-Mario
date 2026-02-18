@@ -107,7 +107,22 @@ export class PhysicsWorld3D {
 
     // NO front wall — coins fall off the front edge!
 
-    // Back ledge is now part of the pusher body (compound shape in PusherController3D)
+    // ── Fixed barrier (coin scraper — stops coins when platform retracts) ──
+    const barrierShape = new CANNON.Box(new CANNON.Vec3(
+      C.TABLE_WIDTH / 2,
+      C.BARRIER_HEIGHT / 2,
+      C.BARRIER_THICKNESS / 2
+    ));
+    // Position above the platform surface so coins hit it, platform slides under
+    const barrierY = C.PUSHER_HEIGHT + C.BARRIER_HEIGHT / 2 + 0.05;
+    this.barrier = new CANNON.Body({
+      mass: 0,
+      shape: barrierShape,
+      material: this.wallMaterial,
+      position: new CANNON.Vec3(0, barrierY, C.BARRIER_Z),
+    });
+    this.barrier.quaternion.copy(tiltQ);
+    this.world.addBody(this.barrier);
   }
 
   step(dt) {
