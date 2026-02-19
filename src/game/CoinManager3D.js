@@ -23,10 +23,10 @@ export class CoinManager3D {
       shape,
       material: this.physicsWorld.coinMaterial,
       position: new CANNON.Vec3(x, y, z),
-      linearDamping: 0.4,
+      linearDamping: 0.15,
       angularDamping: 0.95,
-      sleepSpeedLimit: 0.2,
-      sleepTimeLimit: 0.5,
+      sleepSpeedLimit: 0.1,
+      sleepTimeLimit: 1.0,
     });
 
     body.quaternion.setFromEuler(
