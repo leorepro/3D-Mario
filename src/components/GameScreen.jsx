@@ -15,6 +15,7 @@ import { DailyRewardPopup } from './DailyRewardPopup.jsx';
 import { AchievementPopup } from './AchievementPopup.jsx';
 import { LeaderboardPanel } from './LeaderboardPanel.jsx';
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../game/constants.js';
+import { WalkingCharacters } from './WalkingCharacters.jsx';
 
 /** Calculate scale factor to fit the game within the device screen */
 function useResponsiveScale() {
@@ -98,6 +99,9 @@ export function GameScreen() {
             onPositionChange={setDropX}
             onDrop={dropCoin}
           />
+
+          {/* Walking characters in drop zone */}
+          <WalkingCharacters />
 
           {/* In-game overlays */}
           <ChainPopup chainEvent={chainEvent} />
