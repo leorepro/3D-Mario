@@ -86,6 +86,11 @@ export class GameEngine {
     this.frenzyEndTime = 0;
     this.frenzyLastCoinTime = 0;
 
+    // Lakitu state
+    this.lakituState = 'idle';  // idle | flying_in | fishing | flying_out
+    this.lakituNextTime = Date.now() + this._randomLakituDelay();
+    this.lakituPhaseStart = 0;
+
     // Restore scene from save
     const savedScene = this.saveManager.getCurrentScene();
     if (savedScene && savedScene !== 'overworld') {
@@ -146,6 +151,9 @@ export class GameEngine {
 
     // Update frenzy
     this.updateFrenzy();
+
+    // Update Lakitu event
+    this.updateLakitu();
 
     // Update boss
     if (this.bossSystem.isActive()) {
@@ -462,6 +470,84 @@ export class GameEngine {
         this.coinManager.spawnCoin(x, C.DROP_Y + Math.random() * 2, C.DROP_Z + Math.random());
       }
     }
+  }
+
+  // ─── Lakitu event ───
+  updateLakitu() {
+    const now = Date.now();
+
+    switch (this.lakituState) {
+      case 'idle':
+        if (now >= this.lakituNextTime && this.coinManager.getCoinCount() >= C.LAKITU_COINS_TO_STEAL) {
+          this.lakituState = 'flying_in';
+          this.lakituPhaseStart = now;
+          this.renderer.showLakitu();
+          this.audio.playLakituAppear();
+          this.callbacks.onLakituStart?.();
+        }
+        break;
+
+      case 'flying_in': {
+        const elapsed = now - this.lakituPhaseStart;
+        const progress = elapsed / C.LAKITU_FLY_IN_MS;
+        this.renderer.updateLakituAnimation('fly_in', progress);
+        if (progress >= 1) {
+          this.lakituState = 'fishing';
+          this.lakituPhaseStart = now;
+        }
+        break;
+      }
+
+      case 'fishing': {
+        const elapsed = now - this.lakituPhaseStart;
+        const progress = elapsed / C.LAKITU_FISH_MS;
+        this.renderer.updateLakituAnimation('fishing', progress);
+        if (progress >= 1) {
+          this._lakituStealCoins();
+          this.lakituState = 'flying_out';
+          this.lakituPhaseStart = now;
+        }
+        break;
+      }
+
+      case 'flying_out': {
+        const elapsed = now - this.lakituPhaseStart;
+        const progress = elapsed / C.LAKITU_FLY_OUT_MS;
+        this.renderer.updateLakituAnimation('fly_out', progress);
+        if (progress >= 1) {
+          this.lakituState = 'idle';
+          this.renderer.hideLakitu();
+          this.callbacks.onLakituEnd?.();
+          this.lakituNextTime = now + this._randomLakituDelay();
+        }
+        break;
+      }
+    }
+  }
+
+  _lakituStealCoins() {
+    const coins = this.coinManager.getCoins();
+    const count = Math.min(C.LAKITU_COINS_TO_STEAL, coins.length);
+    if (count <= 0) return;
+
+    // Pick random coins to steal
+    const toSteal = [...coins].sort(() => Math.random() - 0.5).slice(0, count);
+    for (const coin of toSteal) {
+      const pos = coin.body.position;
+      // Red particles — stolen!
+      this.renderer.emitParticles(
+        { x: pos.x, y: pos.y, z: pos.z },
+        { count: 8, color: 0xff0000, speed: 3 }
+      );
+      this.coinManager.removeCoin(coin);
+    }
+
+    this.audio.playLakituSteal();
+    this.callbacks.onLakituSteal?.(count);
+  }
+
+  _randomLakituDelay() {
+    return C.LAKITU_MIN_INTERVAL + Math.random() * (C.LAKITU_MAX_INTERVAL - C.LAKITU_MIN_INTERVAL);
   }
 
   dropCoin(ignoreCooldown = false) {

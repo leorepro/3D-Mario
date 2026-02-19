@@ -238,6 +238,29 @@ export class AudioManager {
     setTimeout(() => this._playTone(1320, 0.25, 'sine', 0.2), 200);
   }
 
+  /** Lakitu appears — warning siren descending */
+  playLakituAppear() {
+    // Descending warning tones
+    [1200, 1000, 800, 600].forEach((f, i) => {
+      setTimeout(() => this._playTone(f, 0.15, 'square', 0.2), i * 100);
+    });
+    // Wind whoosh
+    setTimeout(() => this._playNoise(0.3, 0.08), 50);
+  }
+
+  /** Lakitu steals coins — sneaky ascending jingle */
+  playLakituSteal() {
+    // Fast ascending steal sequence
+    [400, 500, 600, 700, 800, 1000].forEach((f, i) => {
+      setTimeout(() => this._playTone(f, 0.08, 'triangle', 0.18), i * 50);
+    });
+    // Coin jingle at end
+    setTimeout(() => {
+      this._playTone(1200, 0.12, 'sine', 0.2);
+      this._playTone(1500, 0.1, 'sine', 0.15);
+    }, 350);
+  }
+
   /** Achievement unlocked */
   playAchievement() {
     this._playTone(880, 0.1, 'square', 0.2);

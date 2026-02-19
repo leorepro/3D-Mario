@@ -42,6 +42,7 @@ export function useGameEngine(containerRef) {
   const [settings, setSettings] = useState({ volume: 0.5, haptic: true });
   const [leaderboard, setLeaderboard] = useState([]);
   const [canBoss, setCanBoss] = useState(false);
+  const [lakituEvent, setLakituEvent] = useState(null);
   const [coinSize, setCoinSizeState] = useState('small');
   const coinSizeRef = useRef('small');
 
@@ -101,6 +102,16 @@ export function useGameEngine(containerRef) {
       onBurstCoins: (count) => {
         // Free coins from burst — add to balance
         setCoinBalance(prev => prev + count);
+      },
+      onLakituStart: () => {
+        setLakituEvent({ active: true, coinsStolen: 0 });
+      },
+      onLakituSteal: (count) => {
+        setLakituEvent(prev => prev ? { ...prev, coinsStolen: count } : { active: true, coinsStolen: count });
+      },
+      onLakituEnd: () => {
+        // Keep showing for 2 seconds so player sees the result
+        setTimeout(() => setLakituEvent(null), 2000);
       },
     });
 
@@ -318,6 +329,7 @@ export function useGameEngine(containerRef) {
     startBoss,
     abortBoss,
     canBoss,
+    lakituEvent,
     wheelVisible,
     setWheelVisible,
     handleWheelPrize,

@@ -1440,6 +1440,170 @@ export class Renderer3D {
     }
   }
 
+  // ─── Lakitu mesh ───
+  showLakitu() {
+    if (this.lakituMesh) return;
+
+    const group = new THREE.Group();
+
+    // ── Cloud body (3 white spheres) ──
+    const cloudMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, metalness: 0.0, roughness: 0.9,
+    });
+    const cloudGeo = new THREE.SphereGeometry(1, 12, 8);
+    const c1 = new THREE.Mesh(cloudGeo, cloudMat);
+    c1.scale.set(1.6, 0.8, 1.0);
+    c1.position.set(0, 0, 0);
+    group.add(c1);
+    const c2 = new THREE.Mesh(cloudGeo, cloudMat);
+    c2.scale.set(1.1, 0.7, 0.9);
+    c2.position.set(1.2, 0.3, 0);
+    group.add(c2);
+    const c3 = new THREE.Mesh(cloudGeo, cloudMat);
+    c3.scale.set(1.0, 0.65, 0.85);
+    c3.position.set(-1.0, 0.25, 0);
+    group.add(c3);
+
+    // ── Lakitu character (sitting on top of cloud) ──
+    const charGroup = new THREE.Group();
+    charGroup.position.set(0, 1.0, 0);
+
+    // Shell (green)
+    const shellGeo = new THREE.SphereGeometry(0.45, 10, 8);
+    const shellMat = new THREE.MeshStandardMaterial({ color: 0x43b047, metalness: 0.15, roughness: 0.7 });
+    const shell = new THREE.Mesh(shellGeo, shellMat);
+    shell.scale.set(1, 0.7, 0.9);
+    shell.position.y = 0.1;
+    charGroup.add(shell);
+
+    // Head (yellow-green)
+    const headGeo = new THREE.SphereGeometry(0.3, 10, 8);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xfec77b, metalness: 0.05, roughness: 0.8 });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.set(0, 0.55, 0.15);
+    charGroup.add(head);
+
+    // Goggles (dark band across eyes)
+    const goggleGeo = new THREE.BoxGeometry(0.5, 0.12, 0.15);
+    const goggleMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.5, roughness: 0.3 });
+    const goggles = new THREE.Mesh(goggleGeo, goggleMat);
+    goggles.position.set(0, 0.6, 0.3);
+    charGroup.add(goggles);
+
+    // Goggle lenses (red)
+    const lensGeo = new THREE.SphereGeometry(0.06, 6, 4);
+    const lensMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const lensL = new THREE.Mesh(lensGeo, lensMat);
+    lensL.position.set(-0.12, 0.6, 0.36);
+    charGroup.add(lensL);
+    const lensR = new THREE.Mesh(lensGeo, lensMat);
+    lensR.position.set(0.12, 0.6, 0.36);
+    charGroup.add(lensR);
+
+    group.add(charGroup);
+
+    // ── Fishing rod ──
+    const rodGroup = new THREE.Group();
+
+    // Rod stick (brown cylinder)
+    const rodGeo = new THREE.CylinderGeometry(0.03, 0.03, 2.0, 6);
+    const rodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, metalness: 0.1, roughness: 0.8 });
+    const rod = new THREE.Mesh(rodGeo, rodMat);
+    rod.position.set(0, 0, 0);
+    rod.rotation.z = -0.3;
+    rodGroup.add(rod);
+
+    // Fishing line (thin white line from rod tip down)
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0.3, 0.9, 0),
+      new THREE.Vector3(0.5, -2.5, 0),
+    ]);
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+    const line = new THREE.Line(lineGeo, lineMat);
+    rodGroup.add(line);
+
+    // Hook (gold)
+    const hookGeo = new THREE.TorusGeometry(0.08, 0.02, 6, 8, Math.PI);
+    const hookMat = new THREE.MeshStandardMaterial({ color: 0xffc107, metalness: 0.6, roughness: 0.3 });
+    const hook = new THREE.Mesh(hookGeo, hookMat);
+    hook.position.set(0.5, -2.55, 0);
+    hook.rotation.z = Math.PI;
+    rodGroup.add(hook);
+
+    rodGroup.position.set(0.3, 1.2, 0.2);
+    group.add(rodGroup);
+
+    // Save references for animation
+    group.userData.rodGroup = rodGroup;
+    group.userData.line = line;
+    group.userData.hook = hook;
+
+    // Initial position: off-screen right
+    group.position.set(C.LAKITU_ENTRY_X, C.LAKITU_HEIGHT, 0);
+    this.scene.add(group);
+    this.lakituMesh = group;
+  }
+
+  hideLakitu() {
+    if (this.lakituMesh) {
+      this.scene.remove(this.lakituMesh);
+      this.lakituMesh = null;
+    }
+  }
+
+  updateLakituAnimation(phase, progress) {
+    if (!this.lakituMesh) return;
+
+    const p = Math.max(0, Math.min(1, progress));
+    const bob = Math.sin(this._time * 3) * 0.15;
+
+    if (phase === 'fly_in') {
+      // Fly from right (ENTRY_X) to center (0)
+      const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      const x = C.LAKITU_ENTRY_X * (1 - eased);
+      this.lakituMesh.position.set(x, C.LAKITU_HEIGHT + bob, 0);
+    } else if (phase === 'fishing') {
+      // Stay at center, lower the fishing line
+      this.lakituMesh.position.set(0, C.LAKITU_HEIGHT + bob, 0);
+
+      // Animate fishing line endpoint going down
+      const rodGroup = this.lakituMesh.userData.rodGroup;
+      if (rodGroup) {
+        const line = this.lakituMesh.userData.line;
+        const hook = this.lakituMesh.userData.hook;
+        const lineDown = -2.5 - p * 2.5; // extend line further down
+        const hookY = lineDown - 0.05;
+
+        // Update line geometry
+        const positions = line.geometry.attributes.position.array;
+        positions[4] = lineDown; // y of end point
+        line.geometry.attributes.position.needsUpdate = true;
+
+        // Update hook position
+        hook.position.y = hookY;
+
+        // Swing hook left-right
+        hook.position.x = 0.5 + Math.sin(this._time * 4) * 0.3;
+      }
+    } else if (phase === 'fly_out') {
+      // Fly from center (0) to left (-ENTRY_X)
+      const eased = p * p; // ease-in quad
+      const x = -C.LAKITU_ENTRY_X * eased;
+      this.lakituMesh.position.set(x, C.LAKITU_HEIGHT + bob, 0);
+
+      // Retract line back up
+      const line = this.lakituMesh.userData.line;
+      const hook = this.lakituMesh.userData.hook;
+      if (line && hook) {
+        const lineDown = -5.0 + p * 2.5; // retract back
+        const positions = line.geometry.attributes.position.array;
+        positions[4] = lineDown;
+        line.geometry.attributes.position.needsUpdate = true;
+        hook.position.y = lineDown - 0.05;
+      }
+    }
+  }
+
   flashBossDamage() {
     if (!this.bossMesh) return;
     // Quick red flash
@@ -1524,6 +1688,12 @@ export class Renderer3D {
     // Animate tray edge glow (pulse)
     if (doBgAnim && this.trayEdgeGlow) {
       this.trayEdgeGlow.material.opacity = 0.5 + 0.3 * Math.sin(this._time * 3);
+    }
+
+    // Animate Lakitu floating
+    if (this.lakituMesh) {
+      // gentle floating is handled by updateLakituAnimation, but add small rotation
+      this.lakituMesh.rotation.y = Math.sin(this._time * 0.6) * 0.08;
     }
 
     // Animate boss
@@ -1663,8 +1833,9 @@ export class Renderer3D {
     }
     this.itemMeshes.clear();
 
-    // Dispose boss
+    // Dispose boss & lakitu
     this.hideBoss();
+    this.hideLakitu();
 
     this.smallCoinGeometry.dispose();
     this.largeCoinGeometry.dispose();

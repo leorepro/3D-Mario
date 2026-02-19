@@ -198,6 +198,16 @@ export const SCENES = {
   },
 };
 
+// ── Lakitu Event ──
+export const LAKITU_MIN_INTERVAL = 30000;   // 最短 30 秒
+export const LAKITU_MAX_INTERVAL = 120000;  // 最長 2 分鐘
+export const LAKITU_FLY_IN_MS = 2000;       // 飛入動畫時間
+export const LAKITU_FISH_MS = 2000;         // 釣魚動畫時間
+export const LAKITU_FLY_OUT_MS = 2000;      // 飛出動畫時間
+export const LAKITU_COINS_TO_STEAL = 5;     // 偷走的金幣數量
+export const LAKITU_HEIGHT = 5;             // 飛行高度 (y)
+export const LAKITU_ENTRY_X = 8;            // 從右側進入 x 位置
+
 // ── Material Colors ──
 export const MATERIAL_CONFIG = {
   coin: { color: 0xffc107, metalness: 0.8, roughness: 0.2 },

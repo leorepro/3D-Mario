@@ -16,6 +16,7 @@ import { AchievementPopup } from './AchievementPopup.jsx';
 import { LeaderboardPanel } from './LeaderboardPanel.jsx';
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../game/constants.js';
 import { WalkingCharacters } from './WalkingCharacters.jsx';
+import { LakituPopup } from './LakituPopup.jsx';
 
 /** Calculate scale factor to fit the game within the device screen */
 function useResponsiveScale() {
@@ -52,7 +53,7 @@ export function GameScreen() {
     level, xpProgress,
     itemEvent, levelEvent, achievementEvent,
     frenzyActive, frenzyEndTime,
-    bossActive, bossHP, bossMaxHP, startBoss, abortBoss, canBoss,
+    bossActive, bossHP, bossMaxHP, startBoss, abortBoss, canBoss, lakituEvent,
     wheelVisible, setWheelVisible, handleWheelPrize,
     dailyReward, setDailyReward,
     settingsVisible, setSettingsVisible,
@@ -109,6 +110,7 @@ export function GameScreen() {
           <ItemPopup itemEvent={itemEvent} />
           <LevelUpPopup levelEvent={levelEvent} />
           <AchievementPopup achievementEvent={achievementEvent} />
+          <LakituPopup lakituEvent={lakituEvent} />
           <FrenzyOverlay frenzyActive={frenzyActive} frenzyEndTime={frenzyEndTime} />
           <BossOverlay
             bossActive={bossActive}
