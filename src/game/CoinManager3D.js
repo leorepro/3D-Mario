@@ -2,24 +2,28 @@ import * as CANNON from 'cannon-es';
 import * as C from './constants.js';
 
 export class CoinManager3D {
-  constructor(physicsWorld) {
+  constructor(physicsWorld, quality) {
     this.physicsWorld = physicsWorld;
     this.coins = [];
     this.nextId = 0;
+    this.maxCoins = quality ? quality.get('maxCoins') : C.MAX_COINS;
+    this.physicsSegments = quality ? quality.get('coinPhysicsSegments') : 16;
   }
 
-  spawnCoin(x, y, z) {
-    if (this.coins.length >= C.MAX_COINS) return null;
+  spawnCoin(x, y, z, size = 'small') {
+    if (this.coins.length >= this.maxCoins) return null;
+
+    const sizeConfig = C.COIN_SIZES[size] || C.COIN_SIZES.small;
 
     const shape = new CANNON.Cylinder(
-      C.COIN_RADIUS,
-      C.COIN_RADIUS,
-      C.COIN_HEIGHT,
-      16
+      sizeConfig.radius,
+      sizeConfig.radius,
+      sizeConfig.height,
+      this.physicsSegments
     );
 
     const body = new CANNON.Body({
-      mass: C.COIN_MASS,
+      mass: sizeConfig.mass,
       shape,
       material: this.physicsWorld.coinMaterial,
       position: new CANNON.Vec3(x, y, z),
@@ -37,7 +41,7 @@ export class CoinManager3D {
 
     this.physicsWorld.addBody(body);
     const id = this.nextId++;
-    const coin = { body, id };
+    const coin = { body, id, size };
     this.coins.push(coin);
     return coin;
   }

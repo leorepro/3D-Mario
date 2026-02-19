@@ -58,6 +58,7 @@ export function GameScreen() {
     leaderboardVisible, setLeaderboardVisible,
     currentScene, unlockedScenes, settings, handleSettingsChange,
     leaderboard,
+    coinSize, setCoinSize,
   } = useGameEngine(containerRef);
 
   // Total game height for the outer wrapper
@@ -127,6 +128,8 @@ export function GameScreen() {
           bossActive={bossActive}
           score={score}
           level={level}
+          coinSize={coinSize}
+          onToggleCoinSize={setCoinSize}
         />
 
         {/* Modal overlays */}

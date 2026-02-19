@@ -2,14 +2,14 @@ import * as CANNON from 'cannon-es';
 import * as C from './constants.js';
 
 export class PhysicsWorld3D {
-  constructor() {
+  constructor(quality) {
     this.world = new CANNON.World({
       gravity: new CANNON.Vec3(C.GRAVITY.x, C.GRAVITY.y, C.GRAVITY.z),
       allowSleep: true,
     });
 
     this.world.broadphase = new CANNON.SAPBroadphase(this.world);
-    this.world.solver.iterations = 15;
+    this.world.solver.iterations = quality ? quality.get('solverIterations') : 15;
 
     // Materials
     this.coinMaterial = new CANNON.Material('coin');

@@ -46,12 +46,18 @@ export class ParticleSystem {
    * @param {number} [opts.life=0.6]       — lifetime in seconds
    */
   emit(pos, { count = 8, color = 0xffd700, speed = 3, life = 0.6 } = {}) {
-    const c = new THREE.Color(color);
+    if (!this._tempColor) this._tempColor = new THREE.Color();
+    this._tempColor.set(color);
+    const c = this._tempColor;
 
     for (let i = 0; i < count; i++) {
       if (this.particles.length >= MAX_PARTICLES) {
-        // Recycle oldest
-        this.particles.shift();
+        // Overwrite particle with shortest remaining life
+        let minIdx = 0, minLife = Infinity;
+        for (let j = 0; j < this.particles.length; j++) {
+          if (this.particles[j].life < minLife) { minLife = this.particles[j].life; minIdx = j; }
+        }
+        this.particles.splice(minIdx, 1);
       }
 
       const angle1 = Math.random() * Math.PI * 2;
@@ -80,22 +86,23 @@ export class ParticleSystem {
   }
 
   update(dt) {
-    let idx = 0;
-
-    for (let i = this.particles.length - 1; i >= 0; i--) {
+    // Compact pass: update physics, remove dead particles without splice
+    let writeIdx = 0;
+    for (let i = 0; i < this.particles.length; i++) {
       const p = this.particles[i];
       p.life -= dt;
-      if (p.life <= 0) {
-        this.particles.splice(i, 1);
-        continue;
-      }
+      if (p.life <= 0) continue;
 
       // Physics
       p.vy -= 5 * dt; // gravity
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.z += p.vz * dt;
+
+      this.particles[writeIdx] = p;
+      writeIdx++;
     }
+    this.particles.length = writeIdx;
 
     // Write to buffers
     for (let i = 0; i < MAX_PARTICLES; i++) {

@@ -4,15 +4,24 @@ import { ParticleSystem } from './ParticleSystem.js';
 import { ItemMeshFactory } from './ItemMeshFactory.js';
 
 export class Renderer3D {
-  constructor(container) {
+  constructor(container, quality) {
     this.container = container;
+    this.quality = quality;
 
-    // WebGL Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    // WebGL Renderer — quality-dependent settings
+    const useAA = quality ? quality.get('antialias') : true;
+    this.renderer = new THREE.WebGLRenderer({ antialias: useAA, alpha: false });
     this.renderer.setSize(C.VIEWPORT_WIDTH, C.VIEWPORT_HEIGHT);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    const prCap = quality ? quality.get('pixelRatioCap') : 2;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, prCap));
+
+    const shadowSize = quality ? quality.get('shadowMapSize') : 1024;
+    this.renderer.shadowMap.enabled = shadowSize > 0;
+    if (shadowSize > 0) {
+      const sType = quality ? quality.get('shadowType') : 'PCFSoft';
+      this.renderer.shadowMap.type = sType === 'PCFSoft'
+        ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    }
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.6;
     container.appendChild(this.renderer.domElement);
@@ -36,11 +45,11 @@ export class Renderer3D {
     );
     this.createBarrier();
 
-    // Coin mesh management
-    this.coinMeshes = new Map();
-    this.coinGeometry = new THREE.CylinderGeometry(
-      C.COIN_RADIUS, C.COIN_RADIUS, C.COIN_HEIGHT, 24
-    );
+    // Coin InstancedMesh — separate meshes for small and large coins
+    const coinSegments = quality ? quality.get('coinRenderSegments') : 24;
+    const maxCoins = quality ? quality.get('maxCoins') : 999;
+    const coinCastShadow = quality ? quality.get('coinCastShadow') : true;
+
     this.coinTextures = this.createCoinTextures();
     this.coinMaterials = [
       new THREE.MeshStandardMaterial({  // side (edge)
@@ -59,6 +68,38 @@ export class Renderer3D {
         roughness: 0.25,
       }),
     ];
+
+    // Small coin InstancedMesh
+    this.smallCoinGeometry = new THREE.CylinderGeometry(
+      C.COIN_SIZES.small.radius, C.COIN_SIZES.small.radius, C.COIN_SIZES.small.height, coinSegments
+    );
+    this.smallCoinInstancedMesh = new THREE.InstancedMesh(
+      this.smallCoinGeometry, this.coinMaterials, maxCoins
+    );
+    this.smallCoinInstancedMesh.castShadow = coinCastShadow;
+    this.smallCoinInstancedMesh.receiveShadow = true;
+    this.smallCoinInstancedMesh.count = 0;
+    this.smallCoinInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.scene.add(this.smallCoinInstancedMesh);
+
+    // Large coin InstancedMesh
+    this.largeCoinGeometry = new THREE.CylinderGeometry(
+      C.COIN_SIZES.large.radius, C.COIN_SIZES.large.radius, C.COIN_SIZES.large.height, coinSegments
+    );
+    this.largeCoinInstancedMesh = new THREE.InstancedMesh(
+      this.largeCoinGeometry, this.coinMaterials, maxCoins
+    );
+    this.largeCoinInstancedMesh.castShadow = coinCastShadow;
+    this.largeCoinInstancedMesh.receiveShadow = true;
+    this.largeCoinInstancedMesh.count = 0;
+    this.largeCoinInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.scene.add(this.largeCoinInstancedMesh);
+
+    // Reusable objects for per-frame matrix updates (no allocation)
+    this._coinMatrix = new THREE.Matrix4();
+    this._coinPos = new THREE.Vector3();
+    this._coinQuat = new THREE.Quaternion();
+    this._coinScale = new THREE.Vector3(1, 1, 1);
 
     // Item mesh management
     this.itemMeshes = new Map();
@@ -112,17 +153,20 @@ export class Renderer3D {
     this.scene.add(ambient);
 
     // Main directional light with shadows
+    const shadowSize = this.quality ? this.quality.get('shadowMapSize') : 1024;
     const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.8);
     dirLight.position.set(5, 15, 5);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
-    dirLight.shadow.camera.near = 1;
-    dirLight.shadow.camera.far = 30;
-    dirLight.shadow.camera.left = -8;
-    dirLight.shadow.camera.right = 8;
-    dirLight.shadow.camera.top = 8;
-    dirLight.shadow.camera.bottom = -8;
+    dirLight.castShadow = shadowSize > 0;
+    if (shadowSize > 0) {
+      dirLight.shadow.mapSize.width = shadowSize;
+      dirLight.shadow.mapSize.height = shadowSize;
+      dirLight.shadow.camera.near = 1;
+      dirLight.shadow.camera.far = 30;
+      dirLight.shadow.camera.left = -8;
+      dirLight.shadow.camera.right = 8;
+      dirLight.shadow.camera.top = 8;
+      dirLight.shadow.camera.bottom = -8;
+    }
     this.scene.add(dirLight);
 
     // Secondary fill light from the front
@@ -130,12 +174,19 @@ export class Renderer3D {
     fillLight.position.set(-3, 8, 10);
     this.scene.add(fillLight);
 
-    // Warm spot light on the playing area
-    const spot = new THREE.SpotLight(0xffd700, 1.0, 25, Math.PI / 5);
-    spot.position.set(0, 12, -2);
-    spot.target.position.set(0, 0, 1);
-    this.scene.add(spot);
-    this.scene.add(spot.target);
+    // Warm spot light on the playing area (skip on mobile — use cheaper directional)
+    const useSpot = this.quality ? this.quality.get('useSpotLight') : true;
+    if (useSpot) {
+      const spot = new THREE.SpotLight(0xffd700, 1.0, 25, Math.PI / 5);
+      spot.position.set(0, 12, -2);
+      spot.target.position.set(0, 0, 1);
+      this.scene.add(spot);
+      this.scene.add(spot.target);
+    } else {
+      const warmFill = new THREE.DirectionalLight(0xffd700, 0.5);
+      warmFill.position.set(0, 10, -2);
+      this.scene.add(warmFill);
+    }
   }
 
   createTable() {
@@ -642,11 +693,49 @@ export class Renderer3D {
 
   createBackground() {
     const refs = { sky: null, hills: [], clouds: [], scrollables: [], floaters: [] };
+    const decoScale = this.quality ? this.quality.get('bgDecorationScale') : 1.0;
+    const useSparkle = this.quality ? this.quality.get('bgShaderSparkle') : true;
     // scrollables: objects that scroll right-to-left
     // floaters: objects that bob/float in place { mesh, baseY, amplitude, frequency, phase, rotSpeed }
 
-    // ── Full-screen gradient background plane (replaces flat purple) ──
+    // ── Full-screen gradient background plane ──
     const bgGeo = new THREE.PlaneGeometry(120, 80);
+    const fragShader = useSparkle ? `
+        uniform vec3 topColor;
+        uniform vec3 midColor;
+        uniform vec3 bottomColor;
+        uniform float time;
+        varying vec2 vUv;
+        void main() {
+          float t = vUv.y;
+          t += sin(vUv.x * 3.0 + time * 0.3) * 0.02;
+          vec3 col;
+          if (t > 0.5) {
+            col = mix(midColor, topColor, (t - 0.5) * 2.0);
+          } else {
+            col = mix(bottomColor, midColor, t * 2.0);
+          }
+          float sparkle = sin(vUv.x * 80.0 + time) * sin(vUv.y * 60.0 - time * 0.7);
+          sparkle = smoothstep(0.97, 1.0, sparkle) * 0.15;
+          col += vec3(sparkle, sparkle * 0.95, sparkle * 0.8);
+          gl_FragColor = vec4(col, 1.0);
+        }
+      ` : `
+        uniform vec3 topColor;
+        uniform vec3 midColor;
+        uniform vec3 bottomColor;
+        varying vec2 vUv;
+        void main() {
+          float t = vUv.y;
+          vec3 col;
+          if (t > 0.5) {
+            col = mix(midColor, topColor, (t - 0.5) * 2.0);
+          } else {
+            col = mix(bottomColor, midColor, t * 2.0);
+          }
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `;
     const bgMat = new THREE.ShaderMaterial({
       uniforms: {
         topColor: { value: new THREE.Color(0x4a90d9) },
@@ -661,29 +750,7 @@ export class Renderer3D {
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
-      fragmentShader: `
-        uniform vec3 topColor;
-        uniform vec3 midColor;
-        uniform vec3 bottomColor;
-        uniform float time;
-        varying vec2 vUv;
-        void main() {
-          float t = vUv.y;
-          // Subtle wave distortion
-          t += sin(vUv.x * 3.0 + time * 0.3) * 0.02;
-          vec3 col;
-          if (t > 0.5) {
-            col = mix(midColor, topColor, (t - 0.5) * 2.0);
-          } else {
-            col = mix(bottomColor, midColor, t * 2.0);
-          }
-          // Subtle sparkle dots
-          float sparkle = sin(vUv.x * 80.0 + time) * sin(vUv.y * 60.0 - time * 0.7);
-          sparkle = smoothstep(0.97, 1.0, sparkle) * 0.15;
-          col += vec3(sparkle, sparkle * 0.95, sparkle * 0.8);
-          gl_FragColor = vec4(col, 1.0);
-        }
-      `,
+      fragmentShader: fragShader,
       side: THREE.FrontSide,
       depthWrite: false,
     });
@@ -735,7 +802,8 @@ export class Renderer3D {
       { radius: 3, x: -20, y: -2, z: -19, sx: 1.3, sy: 0.5, speed: 0.15 },
       { radius: 4, x: 35, y: -2, z: -17, sx: 1.1, sy: 0.65, speed: 0.15 },
     ];
-    for (const hc of hillConfigs) {
+    const hillCount = decoScale >= 1 ? hillConfigs.length : decoScale >= 0.5 ? 3 : 2;
+    for (const hc of hillConfigs.slice(0, hillCount)) {
       const geo = new THREE.SphereGeometry(hc.radius, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
       const mesh = new THREE.Mesh(geo, hillMat);
       mesh.position.set(hc.x, hc.y, hc.z);
@@ -768,7 +836,8 @@ export class Renderer3D {
       { x: 40, y: 10, z: -16, scale: 1.1, speed: 0.36, shape: 0, tint: 5 },
       { x: -5, y: 12, z: -19, scale: 0.5, speed: 0.28, shape: 3, tint: 3 },
     ];
-    for (const cc of cloudConfigs) {
+    const cloudCount = decoScale >= 1 ? cloudConfigs.length : decoScale >= 0.5 ? 4 : 2;
+    for (const cc of cloudConfigs.slice(0, cloudCount)) {
       const tint = cloudTints[cc.tint % cloudTints.length];
       const mat = new THREE.MeshBasicMaterial({ color: tint.color, transparent: true, opacity: tint.opacity });
       const group = cloudShapes[cc.shape % cloudShapes.length](mat);
@@ -795,9 +864,11 @@ export class Renderer3D {
       this.scene.add(group);
       refs.scrollables.push({ mesh: group, speed, xMin: -40, xMax: 40, startX: x });
     };
-    createPipeDeco(-15, -12, 2.5, 0.6);
-    createPipeDeco(12, -13, 1.8, 0.6);
-    createPipeDeco(30, -11, 3.0, 0.6);
+    if (decoScale >= 0.5) {
+      createPipeDeco(-15, -12, 2.5, 0.6);
+      createPipeDeco(12, -13, 1.8, 0.6);
+      if (decoScale >= 1) createPipeDeco(30, -11, 3.0, 0.6);
+    }
 
     // Block decorations
     const createBlockDeco = (x, y, z, isQuestion, speed) => {
@@ -813,13 +884,17 @@ export class Renderer3D {
         refs.floaters.push({ mesh, baseY: y, amplitude: 0.15, frequency: 2.0, phase: Math.random() * 6.28, rotSpeed: 0 });
       }
     };
-    createBlockDeco(-18, 6, -12, true, 0.5);
-    createBlockDeco(-16.4, 6, -12, false, 0.5);
-    createBlockDeco(-14.8, 6, -12, false, 0.5);
-    createBlockDeco(-13.2, 6, -12, true, 0.5);
-    createBlockDeco(20, 4, -11, false, 0.55);
-    createBlockDeco(21.6, 4, -11, true, 0.55);
-    createBlockDeco(23.2, 4, -11, false, 0.55);
+    if (decoScale >= 0.5) {
+      createBlockDeco(-18, 6, -12, true, 0.5);
+      createBlockDeco(-16.4, 6, -12, false, 0.5);
+      if (decoScale >= 1) {
+        createBlockDeco(-14.8, 6, -12, false, 0.5);
+        createBlockDeco(-13.2, 6, -12, true, 0.5);
+        createBlockDeco(20, 4, -11, false, 0.55);
+      }
+      createBlockDeco(21.6, 4, -11, true, 0.55);
+      if (decoScale >= 1) createBlockDeco(23.2, 4, -11, false, 0.55);
+    }
 
     // Bushes
     const bushMat = new THREE.MeshStandardMaterial({ color: 0x2d8a2d, roughness: 0.9, metalness: 0 });
@@ -834,10 +909,14 @@ export class Renderer3D {
       this.scene.add(group);
       refs.scrollables.push({ mesh: group, speed, xMin: -40, xMax: 40, startX: x });
     };
-    createBush(-8, -11, 1.0, 0.55);
-    createBush(5, -12, 0.8, 0.55);
-    createBush(22, -10, 1.2, 0.55);
-    createBush(-22, -12, 0.9, 0.55);
+    if (decoScale >= 0.5) {
+      createBush(-8, -11, 1.0, 0.55);
+      createBush(5, -12, 0.8, 0.55);
+      if (decoScale >= 1) {
+        createBush(22, -10, 1.2, 0.55);
+        createBush(-22, -12, 0.9, 0.55);
+      }
+    }
 
     // ── Floating stars (twinkle & spin) ──
     const starGeo = new THREE.OctahedronGeometry(0.3, 0);
@@ -849,7 +928,8 @@ export class Renderer3D {
       { x: -18, y: 12, z: -18, color: 0xd4f0ff, scale: 0.4, speed: 0.18 },
       { x: 42, y: 11, z: -17, color: 0xfff8cc, scale: 0.55, speed: 0.26 },
     ];
-    for (const sc of starConfigs) {
+    const starCount = decoScale >= 1 ? starConfigs.length : decoScale >= 0.5 ? 3 : 0;
+    for (const sc of starConfigs.slice(0, starCount)) {
       const mat = new THREE.MeshBasicMaterial({ color: sc.color, transparent: true, opacity: 0.9 });
       const mesh = new THREE.Mesh(starGeo, mat);
       mesh.position.set(sc.x, sc.y, sc.z); mesh.scale.setScalar(sc.scale);
@@ -858,17 +938,19 @@ export class Renderer3D {
       refs.floaters.push({ mesh, baseY: sc.y, amplitude: 0.3, frequency: 1.5, phase: Math.random() * 6.28, rotSpeed: 1.5 });
     }
 
-    // ── Rainbow arc ──
-    const rainbowColors = [0xe52521, 0xff8c00, 0xfbd000, 0x43b047, 0x049cd8, 0x6b3fa0];
-    const rainbowGroup = new THREE.Group();
-    for (let i = 0; i < rainbowColors.length; i++) {
-      const arcGeo = new THREE.TorusGeometry(8 - i * 0.5, 0.2, 8, 32, Math.PI);
-      const arcMat = new THREE.MeshBasicMaterial({ color: rainbowColors[i], transparent: true, opacity: 0.35 });
-      rainbowGroup.add(new THREE.Mesh(arcGeo, arcMat));
+    // ── Rainbow arc (skip on low) ──
+    if (decoScale >= 0.5) {
+      const rainbowColors = [0xe52521, 0xff8c00, 0xfbd000, 0x43b047, 0x049cd8, 0x6b3fa0];
+      const rainbowGroup = new THREE.Group();
+      for (let i = 0; i < rainbowColors.length; i++) {
+        const arcGeo = new THREE.TorusGeometry(8 - i * 0.5, 0.2, 8, 32, Math.PI);
+        const arcMat = new THREE.MeshBasicMaterial({ color: rainbowColors[i], transparent: true, opacity: 0.35 });
+        rainbowGroup.add(new THREE.Mesh(arcGeo, arcMat));
+      }
+      rainbowGroup.position.set(28, 2, -21); rainbowGroup.scale.set(1.0, 0.7, 1);
+      this.scene.add(rainbowGroup);
+      refs.scrollables.push({ mesh: rainbowGroup, speed: 0.12, xMin: -50, xMax: 55, startX: 28 });
     }
-    rainbowGroup.position.set(28, 2, -21); rainbowGroup.scale.set(1.0, 0.7, 1);
-    this.scene.add(rainbowGroup);
-    refs.scrollables.push({ mesh: rainbowGroup, speed: 0.12, xMin: -50, xMax: 55, startX: 28 });
 
     // ══════════════════════════════════════════════════════════════
     // ── NEW: Floating Mario elements in the foreground/side areas ──
@@ -891,7 +973,8 @@ export class Renderer3D {
       { x: -3, y: -8, z: -2, scale: 0.65 },
       { x: 4, y: -7.5, z: -3, scale: 0.7 },
     ];
-    for (const bc of bgCoinConfigs) {
+    const bgCoinCount = decoScale >= 1 ? bgCoinConfigs.length : decoScale >= 0.5 ? 4 : 0;
+    for (const bc of bgCoinConfigs.slice(0, bgCoinCount)) {
       const mesh = new THREE.Mesh(bgCoinGeo, bgCoinMat);
       mesh.position.set(bc.x, bc.y, bc.z);
       mesh.scale.setScalar(bc.scale);
@@ -913,7 +996,8 @@ export class Renderer3D {
       { x: -5, y: -7.5, z: -3, color: 0xfff8cc, scale: 0.5 },
       { x: 3, y: -9, z: -2, color: 0xfbd000, scale: 0.55 },
     ];
-    for (const fs of fStarConfigs) {
+    const fStarCount = decoScale >= 1 ? fStarConfigs.length : decoScale >= 0.5 ? 2 : 0;
+    for (const fs of fStarConfigs.slice(0, fStarCount)) {
       const mat = new THREE.MeshBasicMaterial({
         color: fs.color, transparent: true, opacity: 0.85,
       });
@@ -958,9 +1042,11 @@ export class Renderer3D {
         rotSpeed: 0.4,
       });
     };
-    createFloatingMushroom(-8, -5.5, -4, 1.2);
-    createFloatingMushroom(7.5, -7, -3, 1.0);
-    createFloatingMushroom(-2, -8.5, -2, 0.9);
+    if (decoScale >= 0.5) {
+      createFloatingMushroom(-8, -5.5, -4, 1.2);
+      createFloatingMushroom(7.5, -7, -3, 1.0);
+      if (decoScale >= 1) createFloatingMushroom(-2, -8.5, -2, 0.9);
+    }
 
     // --- Floating 1-UP green mushroom ---
     const create1UPMushroom = (x, y, z, scale) => {
@@ -984,7 +1070,7 @@ export class Renderer3D {
         rotSpeed: 0.5,
       });
     };
-    create1UPMushroom(9, -4, -5, 1.1);
+    if (decoScale >= 1) create1UPMushroom(9, -4, -5, 1.1);
 
     // --- Floating Fire Flowers ---
     const createFireFlower = (x, y, z, scale) => {
@@ -1015,13 +1101,16 @@ export class Renderer3D {
         rotSpeed: 1.0,
       });
     };
-    createFireFlower(-6, -6.5, -3, 1.5);
-    createFireFlower(5, -8, -2, 1.3);
+    if (decoScale >= 0.5) {
+      createFireFlower(-6, -6.5, -3, 1.5);
+      if (decoScale >= 1) createFireFlower(5, -8, -2, 1.3);
+    }
 
     // --- Twinkling particle stars (very small, scattered) ---
     const tinyStarGeo = new THREE.OctahedronGeometry(0.08, 0);
     const tinyStarColors = [0xffffff, 0xffd700, 0x87ceeb, 0xffd6e8, 0xc8a2ff];
-    for (let i = 0; i < 25; i++) {
+    const tinyStarCount = decoScale >= 1 ? 25 : decoScale >= 0.5 ? 10 : 0;
+    for (let i = 0; i < tinyStarCount; i++) {
       const color = tinyStarColors[i % tinyStarColors.length];
       const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6 + Math.random() * 0.3 });
       const mesh = new THREE.Mesh(tinyStarGeo, mat);
@@ -1205,10 +1294,16 @@ export class Renderer3D {
     // Sync items
     this.syncItems(gameState.items);
 
+    // Background animation throttling — skip frames on lower quality
+    const bgSkip = this.quality ? this.quality.get('bgAnimSkip') : 1;
+    this._bgAnimFrame = (this._bgAnimFrame || 0) + 1;
+    const doBgAnim = this._bgAnimFrame % bgSkip === 0;
+
     // Animate scrolling background (right-to-left parallax)
-    if (this.bgRefs?.scrollables) {
+    if (doBgAnim && this.bgRefs?.scrollables) {
+      const scaledDt = dt * bgSkip; // compensate for skipped frames
       for (const s of this.bgRefs.scrollables) {
-        s.mesh.position.x -= s.speed * dt;
+        s.mesh.position.x -= s.speed * scaledDt;
         if (s.mesh.position.x < s.xMin) {
           s.mesh.position.x = s.xMax;
         }
@@ -1216,12 +1311,12 @@ export class Renderer3D {
     }
 
     // Animate floating/bobbing elements
-    if (this.bgRefs?.floaters) {
+    if (doBgAnim && this.bgRefs?.floaters) {
       const t = this._time;
       for (const f of this.bgRefs.floaters) {
         f.mesh.position.y = f.baseY + Math.sin(t * f.frequency + f.phase) * f.amplitude;
         if (f.rotSpeed) {
-          f.mesh.rotation.y += f.rotSpeed * dt;
+          f.mesh.rotation.y += f.rotSpeed * dt * bgSkip;
         }
         if (f.twinkle) {
           const opacity = 0.3 + 0.5 * (0.5 + 0.5 * Math.sin(t * f.frequency * 2 + f.phase));
@@ -1231,12 +1326,12 @@ export class Renderer3D {
     }
 
     // Animate background gradient shader
-    if (this.bgRefs?.bgPlane) {
+    if (doBgAnim && this.bgRefs?.bgPlane) {
       this.bgRefs.bgPlane.material.uniforms.time.value = this._time;
     }
 
     // Animate tray edge glow (pulse)
-    if (this.trayEdgeGlow) {
+    if (doBgAnim && this.trayEdgeGlow) {
       this.trayEdgeGlow.material.opacity = 0.5 + 0.3 * Math.sin(this._time * 3);
     }
 
@@ -1246,8 +1341,9 @@ export class Renderer3D {
       this.bossMesh.position.y = Math.sin(this._time * 0.8) * 0.15;
     }
 
-    // Update drop indicator
-    if (gameState.dropX !== undefined) {
+    // Update drop indicator (only when dropX actually changes)
+    if (gameState.dropX !== undefined && gameState.dropX !== this._lastDropX) {
+      this._lastDropX = gameState.dropX;
       this.dropIndicator.position.x = gameState.dropX;
       const positions = this.dropLine.geometry.attributes.position.array;
       positions[0] = gameState.dropX;
@@ -1261,33 +1357,42 @@ export class Renderer3D {
   }
 
   syncCoins(coins) {
-    if (!coins) return;
-
-    const activeIds = new Set();
-
-    for (const coin of coins) {
-      activeIds.add(coin.id);
-
-      let mesh = this.coinMeshes.get(coin.id);
-      if (!mesh) {
-        mesh = new THREE.Mesh(this.coinGeometry, this.coinMaterials);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        this.scene.add(mesh);
-        this.coinMeshes.set(coin.id, mesh);
-      }
-
-      mesh.position.copy(coin.body.position);
-      mesh.quaternion.copy(coin.body.quaternion);
+    if (!coins) {
+      this.smallCoinInstancedMesh.count = 0;
+      this.largeCoinInstancedMesh.count = 0;
+      return;
     }
 
-    // Remove meshes for deleted coins
-    for (const [id, mesh] of this.coinMeshes) {
-      if (!activeIds.has(id)) {
-        this.scene.remove(mesh);
-        this.coinMeshes.delete(id);
+    const mat4 = this._coinMatrix;
+    const pos = this._coinPos;
+    const quat = this._coinQuat;
+    const scale = this._coinScale;
+    let smallIdx = 0;
+    let largeIdx = 0;
+
+    for (let i = 0; i < coins.length; i++) {
+      const coin = coins[i];
+      const body = coin.body;
+      pos.set(body.position.x, body.position.y, body.position.z);
+      quat.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
+      mat4.compose(pos, quat, scale);
+      if (coin.size === 'large') {
+        this.largeCoinInstancedMesh.setMatrixAt(largeIdx++, mat4);
+      } else {
+        this.smallCoinInstancedMesh.setMatrixAt(smallIdx++, mat4);
       }
     }
+
+    this.smallCoinInstancedMesh.count = smallIdx;
+    this.smallCoinInstancedMesh.instanceMatrix.needsUpdate = true;
+    this.largeCoinInstancedMesh.count = largeIdx;
+    this.largeCoinInstancedMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  setDropIndicatorSize(size) {
+    const radius = C.COIN_SIZES[size]?.radius ?? C.COIN_RADIUS;
+    this.dropIndicator.geometry.dispose();
+    this.dropIndicator.geometry = new THREE.RingGeometry(radius * 0.8, radius * 1.2, 24);
   }
 
   syncItems(items) {
@@ -1355,11 +1460,11 @@ export class Renderer3D {
     // Dispose particles
     this.particles.dispose();
 
-    // Dispose coin meshes
-    for (const [, mesh] of this.coinMeshes) {
-      this.scene.remove(mesh);
-    }
-    this.coinMeshes.clear();
+    // Dispose coin InstancedMeshes
+    this.scene.remove(this.smallCoinInstancedMesh);
+    this.smallCoinInstancedMesh.dispose();
+    this.scene.remove(this.largeCoinInstancedMesh);
+    this.largeCoinInstancedMesh.dispose();
 
     // Dispose item meshes
     for (const [, entry] of this.itemMeshes) {
@@ -1370,7 +1475,8 @@ export class Renderer3D {
     // Dispose boss
     this.hideBoss();
 
-    this.coinGeometry.dispose();
+    this.smallCoinGeometry.dispose();
+    this.largeCoinGeometry.dispose();
     for (const mat of this.coinMaterials) mat.dispose();
     if (this.coinTextures.top) this.coinTextures.top.dispose();
     if (this.coinTextures.bottom) this.coinTextures.bottom.dispose();

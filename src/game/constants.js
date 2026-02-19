@@ -22,6 +22,26 @@ export const COIN_FRICTION = 0.5;
 export const COIN_RESTITUTION = 0.1;
 export const MAX_COINS = 999;
 
+// ── Coin Sizes ──
+export const COIN_SIZES = {
+  small: {
+    radius: COIN_RADIUS,
+    height: COIN_HEIGHT,
+    mass: COIN_MASS,
+    dropCost: 1,
+    collectValue: 1,
+    scoreValue: 1,
+  },
+  large: {
+    radius: COIN_RADIUS * 2,  // 1.2
+    height: COIN_HEIGHT * 2,  // 0.3
+    mass: COIN_MASS * 4,      // 3.6
+    dropCost: 5,
+    collectValue: 5,
+    scoreValue: 5,
+  },
+};
+
 // ── Pusher (large sliding platform — Mario red) ──
 export const PUSHER_WIDTH = TABLE_WIDTH;
 export const PUSHER_DEPTH = 7.0;          // large platform covers most of the table

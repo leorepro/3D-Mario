@@ -1,4 +1,5 @@
 import { ShareButton } from './ShareButton.jsx';
+import { COIN_SIZES } from '../game/constants.js';
 
 export function ActionBar({
   coinBalance, onDrop, autoDropping, onToggleAutoDrop,
@@ -6,18 +7,32 @@ export function ActionBar({
   onOpenSettings, onOpenLeaderboard,
   canBoss, onStartBoss, bossActive,
   score, level,
+  coinSize = 'small', onToggleCoinSize,
 }) {
+  const dropCost = (COIN_SIZES[coinSize] || COIN_SIZES.small).dropCost;
+  const canDrop = coinBalance >= dropCost;
+
   return (
     <div className="flex justify-center items-center gap-1.5 px-2 py-2.5 bg-black/80"
          style={{ width: 390 }}>
-      <div className="flex items-center gap-1 text-white min-w-[50px]">
-        <span className="text-base">{'\uD83E\uDE99'}</span>
-        <span className="text-coin-gold font-bold text-xs">{coinBalance}</span>
-      </div>
+
+      {/* Coin size toggle — replaces old coin balance display */}
+      <button
+        onClick={() => onToggleCoinSize?.(coinSize === 'small' ? 'large' : 'small')}
+        className={`px-2.5 py-2 rounded-xl font-bold text-xs
+                   active:scale-95 transition-all cursor-pointer shadow-lg
+                   ${coinSize === 'large'
+                     ? 'bg-mario-yellow text-black ring-2 ring-white/50'
+                     : 'bg-white/10 text-white hover:bg-white/20'
+                   }`}
+        title={coinSize === 'small' ? '切換大金幣（花費5）' : '切換小金幣（花費1）'}
+      >
+        {coinSize === 'large' ? '\uD83E\uDE99\xD75' : '\uD83E\uDE99\xD71'}
+      </button>
 
       <button
         onClick={onDrop}
-        disabled={coinBalance <= 0}
+        disabled={!canDrop}
         className="bg-mario-red text-white px-4 py-2 rounded-xl font-bold text-sm
                    disabled:opacity-40 disabled:cursor-not-allowed
                    active:scale-95 transition-transform cursor-pointer
@@ -28,7 +43,7 @@ export function ActionBar({
 
       <button
         onClick={onToggleAutoDrop}
-        disabled={coinBalance <= 0 && !autoDropping}
+        disabled={!canDrop && !autoDropping}
         className={`px-2.5 py-2 rounded-xl font-bold text-xs
                    disabled:opacity-40 disabled:cursor-not-allowed
                    active:scale-95 transition-all cursor-pointer

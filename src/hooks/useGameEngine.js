@@ -6,6 +6,7 @@ import {
   AUTO_DROP_INTERVAL_MS,
   COIN_RECOVERY_INTERVAL_MS,
   COIN_RECOVERY_MAX,
+  COIN_SIZES,
 } from '../game/constants.js';
 
 export function useGameEngine(containerRef) {
@@ -41,17 +42,23 @@ export function useGameEngine(containerRef) {
   const [settings, setSettings] = useState({ volume: 0.5, haptic: true });
   const [leaderboard, setLeaderboard] = useState([]);
   const [canBoss, setCanBoss] = useState(false);
+  const [coinSize, setCoinSizeState] = useState('small');
+  const coinSizeRef = useRef('small');
 
-  // Keep ref in sync with state for interval callback
+  // Keep refs in sync with state for interval callbacks
   useEffect(() => {
     coinBalanceRef.current = coinBalance;
   }, [coinBalance]);
 
   useEffect(() => {
+    coinSizeRef.current = coinSize;
+  }, [coinSize]);
+
+  useEffect(() => {
     if (!containerRef.current) return;
 
     const engine = new GameEngine(containerRef.current, {
-      onCoinCollected: (scoreValue, comboResult) => {
+      onCoinCollected: (scoreValue, comboResult, size = 'small') => {
         setScore(prev => {
           const next = prev + scoreValue;
           // Update high score and leaderboard
@@ -60,7 +67,8 @@ export function useGameEngine(containerRef) {
           }
           return next;
         });
-        setCoinBalance(prev => prev + 1);
+        const collectValue = (COIN_SIZES[size] || COIN_SIZES.small).collectValue;
+        setCoinBalance(prev => prev + collectValue);
         setChain(comboResult.chain);
         setMultiplier(comboResult.multiplier);
 
@@ -188,12 +196,13 @@ export function useGameEngine(containerRef) {
   useEffect(() => {
     if (autoDropping) {
       autoDropRef.current = setInterval(() => {
-        if (coinBalanceRef.current <= 0) {
+        const cost = (COIN_SIZES[coinSizeRef.current] || COIN_SIZES.small).dropCost;
+        if (coinBalanceRef.current < cost) {
           setAutoDropping(false);
           return;
         }
         if (engineRef.current?.dropCoin(true)) {
-          setCoinBalance(prev => prev - 1);
+          setCoinBalance(prev => prev - cost);
         }
       }, AUTO_DROP_INTERVAL_MS);
     } else {
@@ -222,16 +231,22 @@ export function useGameEngine(containerRef) {
   }, [chain]);
 
   const dropCoin = useCallback(() => {
-    if (coinBalance <= 0) return false;
+    const cost = (COIN_SIZES[coinSize] || COIN_SIZES.small).dropCost;
+    if (coinBalance < cost) return false;
     if (engineRef.current?.dropCoin()) {
-      setCoinBalance(prev => prev - 1);
+      setCoinBalance(prev => prev - cost);
       return true;
     }
     return false;
-  }, [coinBalance]);
+  }, [coinBalance, coinSize]);
 
   const setDropX = useCallback((x) => {
     engineRef.current?.setDropX(x);
+  }, []);
+
+  const setCoinSize = useCallback((size) => {
+    setCoinSizeState(size);
+    engineRef.current?.setCoinSize(size);
   }, []);
 
   const toggleAutoDrop = useCallback(() => {
@@ -318,5 +333,7 @@ export function useGameEngine(containerRef) {
     settings,
     handleSettingsChange,
     leaderboard,
+    coinSize,
+    setCoinSize,
   };
 }

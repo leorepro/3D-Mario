@@ -12,6 +12,7 @@ import { BossSystem } from './BossSystem.js';
 import { SaveManager } from './SaveManager.js';
 import { LevelSystem } from './LevelSystem.js';
 import { AchievementSystem } from './AchievementSystem.js';
+import { QualityManager } from './QualityManager.js';
 import * as C from './constants.js';
 
 export class GameEngine {
@@ -19,12 +20,15 @@ export class GameEngine {
     this.callbacks = callbacks;
     this.container = container;
 
+    // Quality detection
+    this.quality = new QualityManager();
+
     // Core systems
     this.eventBus = new EventBus();
     this.saveManager = new SaveManager();
 
     // 3D Physics world
-    this.physics = new PhysicsWorld3D();
+    this.physics = new PhysicsWorld3D(this.quality);
 
     // Single pusher system
     this.pusher = new PusherController3D(this.physics, {
@@ -38,13 +42,13 @@ export class GameEngine {
     });
 
     // Coin manager
-    this.coinManager = new CoinManager3D(this.physics);
+    this.coinManager = new CoinManager3D(this.physics, this.quality);
 
     // Item manager
     this.itemManager = new ItemManager3D(this.physics);
 
     // 3D Renderer
-    this.renderer = new Renderer3D(container);
+    this.renderer = new Renderer3D(container, this.quality);
 
     // Audio
     this.audio = new AudioManager();
@@ -71,6 +75,7 @@ export class GameEngine {
     this.isRunning = false;
     this.animFrameId = null;
     this.dropX = 0;
+    this.coinSize = 'small';
     this.lastDropTime = 0;
     this.lastTime = 0;
     this.scoreMultiplier = 1;
@@ -124,6 +129,7 @@ export class GameEngine {
 
     // Stabilize coins: prevent flipping by damping X/Z angular velocity
     for (const coin of this.coinManager.getCoins()) {
+      if (coin.body.sleepState === 2) continue; // SLEEPING = 2, skip settled coins
       const av = coin.body.angularVelocity;
       av.x *= 0.1;
       av.z *= 0.1;
@@ -184,14 +190,15 @@ export class GameEngine {
           );
 
           const result = this.combo.onCoinCollected();
-          const scoreValue = Math.floor(C.COIN_SCORE_VALUE * result.multiplier * this.scoreMultiplier);
+          const coinSizeConfig = C.COIN_SIZES[coin.size] || C.COIN_SIZES.small;
+          const scoreValue = Math.floor(coinSizeConfig.scoreValue * result.multiplier * this.scoreMultiplier);
 
           // XP gain
           this.levelSystem.addXP(1);
           this.saveManager.addCoinsCollected(1);
           this.saveManager.setMaxChain(result.chain);
 
-          this.callbacks.onCoinCollected?.(scoreValue, result);
+          this.callbacks.onCoinCollected?.(scoreValue, result, coin.size || 'small');
           this.eventBus.emit('coin:collected', { scoreValue, combo: result });
 
           if (result.newTier && result.tier) {
@@ -209,36 +216,26 @@ export class GameEngine {
             this.audio.playBossHit();
             this.renderer.flashBossDamage();
           }
-        } else if (pos.z < -C.TABLE_DEPTH / 2 + 1) {
-          // Coin fell off back wall — boss damage
+        } else {
+          // Coin fell off back/side — silently remove, no score
           this.coinManager.removeCoin(coin);
           if (this.bossSystem.isActive()) {
             this.bossSystem.onObjectLostBack('coin');
             this.audio.playBossHit();
             this.renderer.flashBossDamage();
-          } else {
-            this.audio.playCoinLost();
           }
-          this.callbacks.onCoinLost?.();
-        } else {
-          this.coinManager.removeCoin(coin);
-          this.audio.playCoinLost();
-          this.callbacks.onCoinLost?.();
         }
       } else if (Math.abs(pos.x) > C.TABLE_WIDTH / 2 + 3) {
+        // Coin flew off the side — silently remove
         this.coinManager.removeCoin(coin);
-        this.audio.playCoinLost();
-        this.callbacks.onCoinLost?.();
       } else if (pos.z < -C.TABLE_DEPTH / 2 - 3) {
+        // Coin went far behind table — silently remove
         this.coinManager.removeCoin(coin);
         if (this.bossSystem.isActive()) {
           this.bossSystem.onObjectLostBack('coin');
           this.audio.playBossHit();
           this.renderer.flashBossDamage();
-        } else {
-          this.audio.playCoinLost();
         }
-        this.callbacks.onCoinLost?.();
       }
     }
 
@@ -477,7 +474,7 @@ export class GameEngine {
       Math.min(C.DROP_X_RANGE, this.dropX + randomOffset)
     );
 
-    const coin = this.coinManager.spawnCoin(x, C.DROP_Y, C.DROP_Z);
+    const coin = this.coinManager.spawnCoin(x, C.DROP_Y, C.DROP_Z, this.coinSize);
     if (coin) {
       this.lastDropTime = now;
       this.audio.playCoinDrop();
@@ -511,6 +508,11 @@ export class GameEngine {
       return true;
     }
     return false;
+  }
+
+  setCoinSize(size) {
+    this.coinSize = size;
+    this.renderer.setDropIndicatorSize(size);
   }
 
   // ─── Boss mode ───
