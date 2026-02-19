@@ -353,68 +353,63 @@ export class Renderer3D {
   createPusherMesh(width, height, depth) {
     const group = new THREE.Group();
 
-    // ── Main platform body (Mario Red) ──
+    // ── Mario-themed textures ──
+    const topTex = this._createBrickTileTexture();
+    topTex.wrapS = THREE.RepeatWrapping;
+    topTex.wrapT = THREE.RepeatWrapping;
+    topTex.repeat.set(width / 2, depth / 2);
+
+    const frontTex = this._createPusherFrontTexture();
+
+    // ── Main platform body (multi-material for themed faces) ──
     const bodyGeo = new THREE.BoxGeometry(width, height, depth);
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0xe52521,    // Mario red
-      metalness: 0.1,
-      roughness: 0.75,
+    const sideMat = new THREE.MeshStandardMaterial({
+      color: 0xb81e1e, metalness: 0.1, roughness: 0.75,
     });
-    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+    const topMat = new THREE.MeshStandardMaterial({
+      map: topTex, metalness: 0.15, roughness: 0.65,
+    });
+    const frontMat = new THREE.MeshStandardMaterial({
+      map: frontTex, metalness: 0.25, roughness: 0.5,
+    });
+    const bottomMat = new THREE.MeshStandardMaterial({
+      color: 0x6b1010, metalness: 0.05, roughness: 0.9,
+    });
+
+    // BoxGeometry faces: +x, -x, +y, -y, +z, -z
+    const bodyMesh = new THREE.Mesh(bodyGeo, [
+      sideMat, sideMat, topMat, bottomMat, frontMat, sideMat,
+    ]);
     bodyMesh.castShadow = true;
     bodyMesh.receiveShadow = true;
     group.add(bodyMesh);
 
-    // ── Yellow top surface trim ──
-    const topTrimGeo = new THREE.BoxGeometry(width + 0.02, 0.04, depth + 0.02);
+    // ── Gold front edge lip ──
     const yellowMat = new THREE.MeshStandardMaterial({
-      color: 0xfbd000,    // Mario yellow
-      metalness: 0.3,
-      roughness: 0.4,
+      color: 0xfbd000, metalness: 0.35, roughness: 0.35,
     });
-    const topTrim = new THREE.Mesh(topTrimGeo, yellowMat);
-    topTrim.position.y = height / 2 + 0.02;
-    group.add(topTrim);
-
-    // ── Front push face (darker red, the face that pushes coins) ──
-    const frontFaceGeo = new THREE.BoxGeometry(width, height, 0.06);
-    const frontFaceMat = new THREE.MeshStandardMaterial({
-      color: 0xcc1f1f,
-      metalness: 0.15,
-      roughness: 0.7,
-    });
-    const frontFace = new THREE.Mesh(frontFaceGeo, frontFaceMat);
-    frontFace.position.z = depth / 2 + 0.03;
-    group.add(frontFace);
-
-    // ── Yellow front edge lip (like the reference toy) ──
-    const lipGeo = new THREE.BoxGeometry(width + 0.1, 0.08, 0.15);
+    const lipGeo = new THREE.BoxGeometry(width + 0.1, 0.12, 0.15);
     const frontLip = new THREE.Mesh(lipGeo, yellowMat);
-    frontLip.position.set(0, height / 2 + 0.02, depth / 2 + 0.05);
+    frontLip.position.set(0, height / 2 + 0.04, depth / 2 + 0.05);
     group.add(frontLip);
 
-    // ── Grid lines on platform surface (subtle visual detail) ──
-    const lineMat = new THREE.MeshStandardMaterial({
-      color: 0xb81e1e,
-      metalness: 0.05,
-      roughness: 0.9,
-    });
-    // Horizontal lines across the platform
-    for (let i = 1; i < 4; i++) {
-      const lineGeo = new THREE.BoxGeometry(width - 0.2, 0.02, 0.04);
-      const line = new THREE.Mesh(lineGeo, lineMat);
-      line.position.set(0, height / 2 + 0.01, -depth / 2 + (depth / 4) * i);
-      group.add(line);
-    }
-
-    // ── Yellow side edge strips ──
-    const sideStripGeo = new THREE.BoxGeometry(0.08, height + 0.04, depth);
+    // ── Gold side edge strips ──
+    const sideStripGeo = new THREE.BoxGeometry(0.1, height + 0.04, depth);
     const leftStrip = new THREE.Mesh(sideStripGeo, yellowMat);
-    leftStrip.position.set(-width / 2 - 0.02, 0, 0);
+    leftStrip.position.set(-width / 2 - 0.03, 0, 0);
     group.add(leftStrip);
     const rightStrip = new THREE.Mesh(sideStripGeo, yellowMat);
-    rightStrip.position.set(width / 2 + 0.02, 0, 0);
+    rightStrip.position.set(width / 2 + 0.03, 0, 0);
     group.add(rightStrip);
+
+    // ── Back edge trim ──
+    const backLipGeo = new THREE.BoxGeometry(width + 0.1, 0.1, 0.1);
+    const backLipMat = new THREE.MeshStandardMaterial({
+      color: 0x8b1515, metalness: 0.15, roughness: 0.7,
+    });
+    const backLip = new THREE.Mesh(backLipGeo, backLipMat);
+    backLip.position.set(0, height / 2 + 0.03, -depth / 2 - 0.03);
+    group.add(backLip);
 
     // Store original width for scaling reference
     group.userData.baseWidth = width;
@@ -466,39 +461,235 @@ export class Renderer3D {
   }
 
   createBarrier() {
-    // Fixed overhead barrier — stops coins when platform retracts
+    // Fixed overhead barrier — Mario-styled row of ? blocks and bricks
     const barrierY = C.PUSHER_HEIGHT + C.BARRIER_HEIGHT / 2 + 0.05;
     const group = new THREE.Group();
 
-    // Main barrier body (yellow, like the reference toy frame)
-    const bodyGeo = new THREE.BoxGeometry(
-      C.TABLE_WIDTH, C.BARRIER_HEIGHT, C.BARRIER_THICKNESS
-    );
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0xfbd000,    // Mario yellow
-      metalness: 0.3,
-      roughness: 0.4,
-    });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.castShadow = true;
-    body.receiveShadow = true;
-    group.add(body);
+    // ── Individual blocks (alternating ? blocks and bricks) ──
+    const blockW = 1.0;
+    const numBlocks = Math.floor(C.TABLE_WIDTH / blockW);
+    const totalW = numBlocks * blockW;
+    const startX = -totalW / 2 + blockW / 2;
+    const gap = 0.03;
 
-    // Red accent stripe on the front face
-    const stripeGeo = new THREE.BoxGeometry(
-      C.TABLE_WIDTH - 0.2, C.BARRIER_HEIGHT * 0.6, 0.02
-    );
-    const stripeMat = new THREE.MeshStandardMaterial({
-      color: 0xe52521,
-      metalness: 0.1,
-      roughness: 0.7,
+    const qTex = this._createSingleBlockTexture(true);
+    const brickTex = this._createSingleBlockTexture(false);
+
+    const qMat = new THREE.MeshStandardMaterial({
+      map: qTex, metalness: 0.25, roughness: 0.45,
+      emissive: 0xfbd000, emissiveIntensity: 0.06,
     });
-    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
-    stripe.position.z = C.BARRIER_THICKNESS / 2 + 0.01;
-    group.add(stripe);
+    const brickMat = new THREE.MeshStandardMaterial({
+      map: brickTex, metalness: 0.1, roughness: 0.8,
+    });
+
+    const blockGeo = new THREE.BoxGeometry(
+      blockW - gap * 2, C.BARRIER_HEIGHT, C.BARRIER_THICKNESS + 0.08
+    );
+
+    for (let i = 0; i < numBlocks; i++) {
+      const isQuestion = i % 2 === 0;
+      const block = new THREE.Mesh(blockGeo, isQuestion ? qMat : brickMat);
+      block.position.x = startX + i * blockW;
+      block.castShadow = true;
+      block.receiveShadow = true;
+      group.add(block);
+    }
+
+    // ── Gold trim on top ──
+    const trimGeo = new THREE.BoxGeometry(
+      C.TABLE_WIDTH + 0.1, 0.08, C.BARRIER_THICKNESS + 0.12
+    );
+    const trimMat = new THREE.MeshStandardMaterial({
+      color: 0xd4a44a, metalness: 0.5, roughness: 0.3,
+    });
+    const topTrim = new THREE.Mesh(trimGeo, trimMat);
+    topTrim.position.y = C.BARRIER_HEIGHT / 2 + 0.04;
+    group.add(topTrim);
+
+    // ── Gold trim on bottom ──
+    const btmTrim = new THREE.Mesh(trimGeo, trimMat);
+    btmTrim.position.y = -C.BARRIER_HEIGHT / 2 - 0.04;
+    group.add(btmTrim);
 
     group.position.set(0, barrierY, C.BARRIER_Z);
     this.scene.add(group);
+  }
+
+  // ── Mario-themed texture helpers ──
+
+  _createBrickTileTexture() {
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Mortar background
+    ctx.fillStyle = '#882020';
+    ctx.fillRect(0, 0, size, size);
+
+    const brickH = size / 4;
+    const brickW = size / 2;
+    const gap = 2;
+    const colors = ['#c43b3b', '#b53535', '#d44040', '#ba3838'];
+
+    for (let row = 0; row < 4; row++) {
+      const offset = row % 2 === 0 ? 0 : brickW / 2;
+      for (let col = -1; col < 3; col++) {
+        const bx = offset + col * brickW;
+        const by = row * brickH;
+        const bx1 = Math.max(0, bx + gap);
+        const bx2 = Math.min(size, bx + brickW - gap);
+        if (bx2 <= bx1) continue;
+
+        const ci = ((row * 7 + col * 3) % colors.length + colors.length) % colors.length;
+        ctx.fillStyle = colors[ci];
+        ctx.fillRect(bx1, by + gap, bx2 - bx1, brickH - gap * 2);
+
+        // 3D highlight (top-left)
+        ctx.fillStyle = 'rgba(255,200,200,0.25)';
+        ctx.fillRect(bx1, by + gap, bx2 - bx1, 2);
+        ctx.fillRect(bx1, by + gap, 2, brickH - gap * 2);
+        // 3D shadow (bottom-right)
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(bx1, by + brickH - gap - 2, bx2 - bx1, 2);
+        ctx.fillRect(bx2 - 2, by + gap, 2, brickH - gap * 2);
+      }
+    }
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  _createPusherFrontTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    // Base dark red
+    ctx.fillStyle = '#a01818';
+    ctx.fillRect(0, 0, 512, 64);
+
+    // Gold band across the middle
+    const grad = ctx.createLinearGradient(0, 12, 0, 52);
+    grad.addColorStop(0, '#fbd000');
+    grad.addColorStop(0.3, '#ffe066');
+    grad.addColorStop(0.7, '#fbd000');
+    grad.addColorStop(1, '#c49000');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 12, 512, 40);
+
+    // Border lines
+    ctx.fillStyle = '#8b6914';
+    ctx.fillRect(0, 12, 512, 3);
+    ctx.fillRect(0, 49, 512, 3);
+
+    // Star motifs along the gold band
+    ctx.fillStyle = '#8b6914';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < 8; i++) {
+      ctx.fillText('\u2605', 32 + i * 64, 32);
+    }
+
+    // Rivet dots along top and bottom edges
+    ctx.fillStyle = '#fbd000';
+    for (let i = 0; i < 16; i++) {
+      ctx.beginPath();
+      ctx.arc(16 + i * 32, 6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(16 + i * 32, 58, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  _createSingleBlockTexture(isQuestion) {
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    if (isQuestion) {
+      // Yellow "?" block
+      ctx.fillStyle = '#fbd000';
+      ctx.fillRect(0, 0, size, size);
+
+      // Darker border
+      ctx.strokeStyle = '#c49000';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(3, 3, size - 6, size - 6);
+
+      // 3D highlight (top-left)
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(3, 3, size - 6, 5);
+      ctx.fillRect(3, 3, 5, size - 6);
+      // 3D shadow (bottom-right)
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(3, size - 8, size - 6, 5);
+      ctx.fillRect(size - 8, 3, 5, size - 6);
+
+      // "?" symbol
+      ctx.font = `bold ${size * 0.55}px "Georgia", serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Shadow
+      ctx.fillStyle = '#8b6914';
+      ctx.fillText('?', size / 2 + 2, size / 2 + 2);
+      // Main
+      ctx.fillStyle = '#5c4a00';
+      ctx.fillText('?', size / 2, size / 2);
+
+      // Corner rivets
+      ctx.fillStyle = '#8b6914';
+      const inset = size * 0.14;
+      const r = size * 0.04;
+      for (const [rx, ry] of [
+        [inset, inset], [size - inset, inset],
+        [inset, size - inset], [size - inset, size - inset],
+      ]) {
+        ctx.beginPath();
+        ctx.arc(rx, ry, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // Brown brick block
+      ctx.fillStyle = '#5c3317';
+      ctx.fillRect(0, 0, size, size);
+
+      const brickH = size / 4;
+      const brickW = size / 2;
+      const gap = 2;
+      const colors = ['#c4713b', '#b5623a', '#d47a3f', '#ba6838'];
+
+      for (let row = 0; row < 4; row++) {
+        const offset = row % 2 === 0 ? 0 : brickW / 2;
+        for (let col = -1; col < 3; col++) {
+          const bx = offset + col * brickW;
+          const by = row * brickH;
+          const bx1 = Math.max(0, bx + gap);
+          const bx2 = Math.min(size, bx + brickW - gap);
+          if (bx2 <= bx1) continue;
+
+          const ci = ((row * 3 + col) % colors.length + colors.length) % colors.length;
+          ctx.fillStyle = colors[ci];
+          ctx.fillRect(bx1, by + gap, bx2 - bx1, brickH - gap * 2);
+
+          // Highlight
+          ctx.fillStyle = 'rgba(255,220,180,0.2)';
+          ctx.fillRect(bx1, by + gap, bx2 - bx1, 2);
+          ctx.fillRect(bx1, by + gap, 2, brickH - gap * 2);
+          // Shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.15)';
+          ctx.fillRect(bx1, by + brickH - gap - 2, bx2 - bx1, 2);
+          ctx.fillRect(bx2 - 2, by + gap, 2, brickH - gap * 2);
+        }
+      }
+    }
+
+    return new THREE.CanvasTexture(canvas);
   }
 
   createCoinTextures() {
