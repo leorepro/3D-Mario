@@ -17,7 +17,7 @@ export const WALL_THICKNESS = 0.3;
 // ── Coin (3D cylinder) ──
 export const COIN_RADIUS = 0.6;
 export const COIN_HEIGHT = 0.15;
-export const COIN_MASS = 0.3;
+export const COIN_MASS = 0.45;
 export const COIN_FRICTION = 0.5;
 export const COIN_RESTITUTION = 0.1;
 export const MAX_COINS = 999;
