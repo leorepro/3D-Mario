@@ -33,9 +33,9 @@ export const COIN_SIZES = {
     scoreValue: 1,
   },
   large: {
-    radius: COIN_RADIUS * 2,  // 1.2
-    height: COIN_HEIGHT * 2,  // 0.3
-    mass: COIN_MASS * 4,      // 3.6
+    radius: COIN_RADIUS * 1.5,  // 0.9
+    height: COIN_HEIGHT * 1.5,  // 0.225
+    mass: COIN_MASS * 2.25,     // 2.025 (1.5² scaling)
     dropCost: 5,
     collectValue: 5,
     scoreValue: 5,

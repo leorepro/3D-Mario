@@ -228,8 +228,8 @@ export class GameEngine {
       } else if (Math.abs(pos.x) > C.TABLE_WIDTH / 2 + 3) {
         // Coin flew off the side — silently remove
         this.coinManager.removeCoin(coin);
-      } else if (pos.z < -C.TABLE_DEPTH / 2 - 3) {
-        // Coin went far behind table — silently remove
+      } else if (pos.z < C.BARRIER_Z - 0.5) {
+        // Coin is behind the barrier — remove immediately so it doesn't pile up
         this.coinManager.removeCoin(coin);
         if (this.bossSystem.isActive()) {
           this.bossSystem.onObjectLostBack('coin');
