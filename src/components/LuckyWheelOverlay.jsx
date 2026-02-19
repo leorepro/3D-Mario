@@ -30,6 +30,7 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
     if (visible) {
       setSpinning(false);
       setResult(null);
+      setRotation(0);  // Reset wheel to slot-0 position so visual always matches result
       hasAutoSpun.current = false;
     }
   }, [visible]);

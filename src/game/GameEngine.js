@@ -515,6 +515,16 @@ export class GameEngine {
     this.renderer.setDropIndicatorSize(size);
   }
 
+  spawnWheelItem(itemTypeId) {
+    const itemDef = C.ITEM_TYPES[itemTypeId];
+    if (!itemDef) return false;
+    const x = (Math.random() - 0.5) * (C.TABLE_WIDTH - 1);
+    const y = C.DROP_Y;
+    const z = C.DROP_Z;
+    this.itemManager.spawnItem(itemDef, x, y, z);
+    return true;
+  }
+
   // ─── Boss mode ───
   startBoss() {
     if (!this.bossSystem.canStart()) return false;

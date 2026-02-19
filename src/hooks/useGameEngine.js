@@ -278,8 +278,7 @@ export function useGameEngine(containerRef) {
       engineRef.current?.startFrenzy();
     }
     if (reward.spawnItem) {
-      // Give equivalent coins instead of spawning for simplicity
-      setCoinBalance(prev => prev + 15);
+      engineRef.current?.spawnWheelItem(reward.spawnItem);
     }
   }, []);
 
