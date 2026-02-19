@@ -31,7 +31,7 @@ export const PUSHER_Z_MAX = 1.5;          // forward position
 export const PUSHER_SPEED = 0.03;         // slower for larger platform
 
 // ── Fixed Barrier (stops coins when platform retracts) ──
-export const BARRIER_Z = -1.0;            // fixed position above table (further back)
+export const BARRIER_Z = -3.0;            // fixed position above table (further back)
 export const BARRIER_HEIGHT = 1.5;        // tall enough to block coins
 export const BARRIER_THICKNESS = 0.15;
 

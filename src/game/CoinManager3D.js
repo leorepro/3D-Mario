@@ -15,7 +15,7 @@ export class CoinManager3D {
       C.COIN_RADIUS,
       C.COIN_RADIUS,
       C.COIN_HEIGHT,
-      12
+      16
     );
 
     const body = new CANNON.Body({
@@ -23,8 +23,8 @@ export class CoinManager3D {
       shape,
       material: this.physicsWorld.coinMaterial,
       position: new CANNON.Vec3(x, y, z),
-      linearDamping: 0.3,
-      angularDamping: 0.6,
+      linearDamping: 0.4,
+      angularDamping: 0.95,
       sleepSpeedLimit: 0.2,
       sleepTimeLimit: 0.5,
     });

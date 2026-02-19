@@ -9,7 +9,7 @@ export class PhysicsWorld3D {
     });
 
     this.world.broadphase = new CANNON.SAPBroadphase(this.world);
-    this.world.solver.iterations = 10;
+    this.world.solver.iterations = 15;
 
     // Materials
     this.coinMaterial = new CANNON.Material('coin');
@@ -25,19 +25,19 @@ export class PhysicsWorld3D {
   setupContactMaterials() {
     this.world.addContactMaterial(new CANNON.ContactMaterial(
       this.coinMaterial, this.tableMaterial,
-      { friction: 0.3, restitution: 0.15 }
+      { friction: 0.4, restitution: 0.02 }
     ));
     this.world.addContactMaterial(new CANNON.ContactMaterial(
       this.coinMaterial, this.coinMaterial,
-      { friction: 0.2, restitution: 0.2 }
+      { friction: 0.3, restitution: 0.02 }
     ));
     this.world.addContactMaterial(new CANNON.ContactMaterial(
       this.coinMaterial, this.wallMaterial,
-      { friction: 0.3, restitution: 0.1 }
+      { friction: 0.3, restitution: 0.05 }
     ));
     this.world.addContactMaterial(new CANNON.ContactMaterial(
       this.coinMaterial, this.pusherMaterial,
-      { friction: 0.5, restitution: 0.05 }
+      { friction: 0.4, restitution: 0.02 }
     ));
   }
 
