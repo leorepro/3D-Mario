@@ -202,6 +202,13 @@ export class GameEngine {
               result.tierIndex
             );
           }
+
+          // Boss damage on front edge collection too
+          if (this.bossSystem.isActive()) {
+            this.bossSystem.onObjectLostBack('coin');
+            this.audio.playBossHit();
+            this.renderer.flashBossDamage();
+          }
         } else if (pos.z < -C.TABLE_DEPTH / 2 + 1) {
           // Coin fell off back wall — boss damage
           this.coinManager.removeCoin(coin);
@@ -245,6 +252,12 @@ export class GameEngine {
           // Item collected from front edge!
           this.itemManager.removeItem(item);
           this.activateItemEffect(item);
+          // Boss damage on front edge item collection too
+          if (this.bossSystem.isActive()) {
+            this.bossSystem.onObjectLostBack(item.type);
+            this.audio.playBossHit();
+            this.renderer.flashBossDamage();
+          }
         } else if (pos.z < -C.TABLE_DEPTH / 2 + 1) {
           // Item fell off back
           this.itemManager.removeItem(item);
