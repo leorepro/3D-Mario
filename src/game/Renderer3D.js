@@ -19,7 +19,7 @@ export class Renderer3D {
 
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1a0a3e);
+    this.scene.background = new THREE.Color(0x5cb8ff);
 
     // Camera
     this.camera = this.createCamera();
@@ -373,18 +373,45 @@ export class Renderer3D {
   }
 
   createCollectionTray() {
-    // Tray below the front edge (adjusted for table tilt)
     const frontDrop = (C.TABLE_DEPTH / 2) * Math.sin(C.TABLE_TILT_RAD);
-    const geo = new THREE.BoxGeometry(C.TABLE_WIDTH + 1, 0.2, 2);
+    this.trayGroup = new THREE.Group();
+
+    // Main tray surface (bright green)
+    const geo = new THREE.BoxGeometry(C.TABLE_WIDTH + 1, 0.2, 2.5);
     const mat = new THREE.MeshStandardMaterial({
       ...C.MATERIAL_CONFIG.tray,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.85,
     });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(0, -2 - frontDrop, C.TABLE_DEPTH / 2 + 1.5);
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this.trayGroup.add(mesh);
+
+    // Glowing golden edge strip at the front of the table (drop line)
+    const edgeGlowGeo = new THREE.BoxGeometry(C.TABLE_WIDTH + 0.5, 0.15, 0.2);
+    const edgeGlowMat = new THREE.MeshBasicMaterial({
+      color: 0xfbd000,
+      transparent: true,
+      opacity: 0.8,
+    });
+    this.trayEdgeGlow = new THREE.Mesh(edgeGlowGeo, edgeGlowMat);
+    this.trayEdgeGlow.position.set(0, 0.2, -1.1);
+    this.trayGroup.add(this.trayEdgeGlow);
+
+    // Arrow indicators (pointing down into tray)
+    const arrowMat = new THREE.MeshBasicMaterial({
+      color: 0xfbd000, transparent: true, opacity: 0.6,
+    });
+    for (let i = -2; i <= 2; i++) {
+      const arrowGeo = new THREE.ConeGeometry(0.2, 0.4, 4);
+      const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+      arrow.rotation.x = Math.PI; // point down
+      arrow.position.set(i * 1.8, 0.4, -0.5);
+      this.trayGroup.add(arrow);
+    }
+
+    this.trayGroup.position.set(0, -2 - frontDrop, C.TABLE_DEPTH / 2 + 1.5);
+    this.scene.add(this.trayGroup);
   }
 
   createBarrier() {
@@ -622,9 +649,9 @@ export class Renderer3D {
     const bgGeo = new THREE.PlaneGeometry(120, 80);
     const bgMat = new THREE.ShaderMaterial({
       uniforms: {
-        topColor: { value: new THREE.Color(0x1a0a3e) },
-        midColor: { value: new THREE.Color(0x2a1a5e) },
-        bottomColor: { value: new THREE.Color(0x0a0a2e) },
+        topColor: { value: new THREE.Color(0x4a90d9) },
+        midColor: { value: new THREE.Color(0x6db8f0) },
+        bottomColor: { value: new THREE.Color(0x3a7abf) },
         time: { value: 0 },
       },
       vertexShader: `
@@ -653,7 +680,7 @@ export class Renderer3D {
           // Subtle sparkle dots
           float sparkle = sin(vUv.x * 80.0 + time) * sin(vUv.y * 60.0 - time * 0.7);
           sparkle = smoothstep(0.97, 1.0, sparkle) * 0.15;
-          col += vec3(sparkle * 0.6, sparkle * 0.4, sparkle);
+          col += vec3(sparkle, sparkle * 0.95, sparkle * 0.8);
           gl_FragColor = vec4(col, 1.0);
         }
       `,
@@ -1206,6 +1233,11 @@ export class Renderer3D {
     // Animate background gradient shader
     if (this.bgRefs?.bgPlane) {
       this.bgRefs.bgPlane.material.uniforms.time.value = this._time;
+    }
+
+    // Animate tray edge glow (pulse)
+    if (this.trayEdgeGlow) {
+      this.trayEdgeGlow.material.opacity = 0.5 + 0.3 * Math.sin(this._time * 3);
     }
 
     // Animate boss

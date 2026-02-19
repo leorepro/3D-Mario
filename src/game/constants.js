@@ -185,6 +185,6 @@ export const MATERIAL_CONFIG = {
   pusher: { color: 0x8b4513, metalness: 0.3, roughness: 0.7 },
   table: { color: 0x2d5a27, metalness: 0.1, roughness: 0.9 },
   wall: { color: 0x4a3728, metalness: 0.2, roughness: 0.8 },
-  tray: { color: 0x1a0a2e, metalness: 0.1, roughness: 0.9 },
-  background: 0x2a1a4e,
+  tray: { color: 0x2a7a4e, metalness: 0.2, roughness: 0.7 },
+  background: 0x5cb8ff,
 };

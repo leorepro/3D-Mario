@@ -175,7 +175,13 @@ export class GameEngine {
 
           this.audio.playCoinCollected();
           this.haptic.coinCollect();
-          this.renderer.emitParticles(coinPos, { count: 10, color: 0xffc107, speed: 3 });
+          // Big golden burst + white sparkles
+          this.renderer.emitParticles(coinPos, { count: 15, color: 0xffc107, speed: 4 });
+          this.renderer.emitParticles(coinPos, { count: 8, color: 0xffffff, speed: 5 });
+          this.renderer.emitParticles(
+            { x: coinPos.x, y: coinPos.y + 0.5, z: coinPos.z },
+            { count: 5, color: 0xfbd000, speed: 2 }
+          );
 
           const result = this.combo.onCoinCollected();
           const scoreValue = Math.floor(C.COIN_SCORE_VALUE * result.multiplier * this.scoreMultiplier);

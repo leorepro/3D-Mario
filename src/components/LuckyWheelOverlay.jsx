@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { LuckyWheel, WHEEL_PRIZES } from '../game/LuckyWheel.js';
 
 const SLICE_COLORS = [
@@ -23,8 +23,31 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState(null);
+  const hasAutoSpun = useRef(false);
 
-  const spin = useCallback(() => {
+  // Reset state and auto-spin when overlay becomes visible
+  useEffect(() => {
+    if (visible) {
+      setSpinning(false);
+      setResult(null);
+      hasAutoSpun.current = false;
+    }
+  }, [visible]);
+
+  // Auto-spin after a brief delay (let wheel render at reset position first)
+  useEffect(() => {
+    if (visible && !spinning && !result && !hasAutoSpun.current) {
+      const timer = setTimeout(() => {
+        if (!hasAutoSpun.current) {
+          hasAutoSpun.current = true;
+          doSpin();
+        }
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, spinning, result]);
+
+  const doSpin = useCallback(() => {
     if (spinning) return;
     setSpinning(true);
     setResult(null);
@@ -33,13 +56,18 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
     const sliceAngle = 360 / prize.totalSlots;
     const targetAngle = 360 * 5 + (360 - prize.slotIndex * sliceAngle - sliceAngle / 2);
 
-    setRotation(prev => prev + targetAngle);
+    // Use requestAnimationFrame to ensure the reset position renders first
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setRotation(prev => prev + targetAngle);
+      });
+    });
 
     setTimeout(() => {
       setSpinning(false);
       setResult(prize);
       onPrize?.(prize.prize);
-    }, 3500);
+    }, 4000);
   }, [spinning, onPrize]);
 
   if (!visible) return null;
@@ -65,26 +93,21 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
             className="w-full h-full rounded-full overflow-hidden border-4 border-mario-yellow"
             style={{
               transform: `rotate(${rotation}deg)`,
-              transition: spinning ? 'transform 3.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
+              transition: spinning ? 'transform 3.8s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
               background: `conic-gradient(${slots.map((s, i) =>
                 `${SLICE_COLORS[i % SLICE_COLORS.length]} ${(i / slots.length) * 100}% ${((i + 1) / slots.length) * 100}%`
               ).join(', ')})`,
             }}
           >
-            {/* Slot labels — each label positioned along its slice, reading outward from center */}
+            {/* Slot labels */}
             {slots.map((slot, i) => {
               const sliceAngle = 360 / slots.length;
               const midAngle = i * sliceAngle + sliceAngle / 2;
-              // Place label at ~65% radius from center
               const radius = 70;
               const rad = ((midAngle - 90) * Math.PI) / 180;
               const x = 120 + Math.cos(rad) * radius;
               const y = 120 + Math.sin(rad) * radius;
               const label = PRIZE_LABELS_ZH[slot.id] || slot.label;
-
-              // Rotate text so it reads outward; for bottom half, add 180 to keep text upright
-              // Since this is inside the rotating wheel, midAngle is relative to the wheel itself
-              // We always orient text radially outward
               const textRotation = midAngle;
 
               return (
@@ -107,6 +130,13 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
           </div>
         </div>
 
+        {/* Spinning indicator */}
+        {spinning && (
+          <div className="text-white font-bold text-sm mb-3 animate-pulse">
+            轉盤旋轉中...
+          </div>
+        )}
+
         {/* Result */}
         {result && (
           <div className="bg-black/50 rounded-lg px-3 py-2 mb-3 animate-bounce">
@@ -119,15 +149,6 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
 
         {/* Buttons */}
         <div className="flex gap-2 justify-center">
-          {!spinning && !result && (
-            <button
-              onClick={spin}
-              className="bg-mario-red text-white px-6 py-2 rounded-xl font-bold
-                         cursor-pointer hover:brightness-110 active:scale-95 transition-transform"
-            >
-              轉！
-            </button>
-          )}
           {result && (
             <button
               onClick={onClose}
@@ -135,15 +156,6 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
                          cursor-pointer hover:brightness-110 active:scale-95 transition-transform"
             >
               領取
-            </button>
-          )}
-          {!spinning && !result && (
-            <button
-              onClick={onClose}
-              className="bg-gray-600 text-white px-4 py-2 rounded-xl font-bold text-sm
-                         cursor-pointer hover:brightness-110"
-            >
-              跳過
             </button>
           )}
         </div>
