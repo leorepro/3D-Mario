@@ -109,6 +109,72 @@ const TOAD_SVG = `
   <rect x="12" y="14" width="2" height="2" fill="#fec77b"/>
 </svg>`;
 
+// ── Villain pixel-art SVGs ──
+
+const GOOMBA_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 16 24" shape-rendering="crispEdges">
+  <!-- Head dome (brown) -->
+  <rect x="4" y="0" width="7" height="2" fill="#8B4513"/>
+  <rect x="3" y="2" width="9" height="2" fill="#8B4513"/>
+  <rect x="2" y="4" width="11" height="6" fill="#8B4513"/>
+  <!-- Eyes (white) -->
+  <rect x="3" y="5" width="3" height="3" fill="#ffffff"/>
+  <rect x="9" y="5" width="3" height="3" fill="#ffffff"/>
+  <!-- Angry eyebrows (dark) -->
+  <rect x="3" y="5" width="3" height="1" fill="#3b2314"/>
+  <rect x="9" y="5" width="3" height="1" fill="#3b2314"/>
+  <!-- Pupils -->
+  <rect x="4" y="6" width="2" height="2" fill="#000000"/>
+  <rect x="10" y="6" width="2" height="2" fill="#000000"/>
+  <!-- Mouth -->
+  <rect x="5" y="9" width="5" height="1" fill="#3b2314"/>
+  <!-- Fangs -->
+  <rect x="6" y="9" width="1" height="1" fill="#ffffff"/>
+  <rect x="8" y="9" width="1" height="1" fill="#ffffff"/>
+  <!-- Body (tan) -->
+  <rect x="3" y="10" width="9" height="5" fill="#e8a84c"/>
+  <!-- Feet (dark brown) -->
+  <rect x="1" y="15" width="5" height="3" fill="#5c3317"/>
+  <rect x="9" y="15" width="5" height="3" fill="#5c3317"/>
+  <!-- Shoe soles -->
+  <rect x="1" y="17" width="5" height="1" fill="#3b2314"/>
+  <rect x="9" y="17" width="5" height="1" fill="#3b2314"/>
+</svg>`;
+
+const KOOPA_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 16 24" shape-rendering="crispEdges">
+  <!-- Head (green) -->
+  <rect x="5" y="0" width="5" height="2" fill="#43b047"/>
+  <rect x="4" y="2" width="7" height="3" fill="#43b047"/>
+  <!-- Eyes (white) -->
+  <rect x="5" y="3" width="2" height="2" fill="#ffffff"/>
+  <rect x="8" y="3" width="2" height="2" fill="#ffffff"/>
+  <!-- Pupils -->
+  <rect x="6" y="3" width="1" height="2" fill="#000000"/>
+  <rect x="9" y="3" width="1" height="2" fill="#000000"/>
+  <!-- Beak/mouth -->
+  <rect x="5" y="5" width="5" height="1" fill="#fec77b"/>
+  <!-- Shell (green) -->
+  <rect x="2" y="6" width="11" height="8" fill="#43b047"/>
+  <!-- Shell rim -->
+  <rect x="2" y="6" width="11" height="1" fill="#2d8a32"/>
+  <rect x="2" y="13" width="11" height="1" fill="#2d8a32"/>
+  <!-- Shell belly (cream/white) -->
+  <rect x="4" y="7" width="7" height="6" fill="#fffde0"/>
+  <!-- Shell pattern lines -->
+  <rect x="7" y="7" width="1" height="6" fill="#2d8a32"/>
+  <rect x="4" y="9" width="7" height="1" fill="#2d8a32"/>
+  <!-- Arms (green) -->
+  <rect x="0" y="9" width="2" height="3" fill="#43b047"/>
+  <rect x="13" y="9" width="2" height="3" fill="#43b047"/>
+  <!-- Legs (tan) -->
+  <rect x="3" y="14" width="3" height="3" fill="#fec77b"/>
+  <rect x="9" y="14" width="3" height="3" fill="#fec77b"/>
+  <!-- Shoes (brown) -->
+  <rect x="2" y="17" width="4" height="2" fill="#5c3317"/>
+  <rect x="9" y="17" width="4" height="2" fill="#5c3317"/>
+</svg>`;
+
 function svgToDataUrl(svg) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.trim())}`;
 }
@@ -116,11 +182,15 @@ function svgToDataUrl(svg) {
 const MARIO_URL  = svgToDataUrl(MARIO_SVG);
 const PEACH_URL  = svgToDataUrl(PEACH_SVG);
 const TOAD_URL   = svgToDataUrl(TOAD_SVG);
+const GOOMBA_URL = svgToDataUrl(GOOMBA_SVG);
+const KOOPA_URL  = svgToDataUrl(KOOPA_SVG);
 
 const CHARS = [
-  { name: 'mario', url: MARIO_URL,  speed: 55, startX: 40,  startDir:  1, yTop: 5 },
-  { name: 'peach', url: PEACH_URL,  speed: 38, startX: 200, startDir: -1, yTop: 3 },
-  { name: 'toad',  url: TOAD_URL,   speed: 70, startX: 300, startDir:  1, yTop: 7 },
+  { name: 'mario',  url: MARIO_URL,  speed: 55, startX: 40,  startDir:  1, yTop: 5 },
+  { name: 'peach',  url: PEACH_URL,  speed: 38, startX: 200, startDir: -1, yTop: 3 },
+  { name: 'toad',   url: TOAD_URL,   speed: 70, startX: 300, startDir:  1, yTop: 7 },
+  { name: 'goomba', url: GOOMBA_URL, speed: 35, startX: 80,  startDir:  1, yTop: 88 },
+  { name: 'koopa',  url: KOOPA_URL,  speed: 45, startX: 260, startDir: -1, yTop: 85 },
 ];
 
 const CHAR_W = 32;
