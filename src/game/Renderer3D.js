@@ -19,7 +19,7 @@ export class Renderer3D {
 
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(C.MATERIAL_CONFIG.background);
+    this.scene.background = new THREE.Color(0x1a0a3e);
 
     // Camera
     this.camera = this.createCamera();
@@ -614,10 +614,59 @@ export class Renderer3D {
   }
 
   createBackground() {
-    const refs = { sky: null, hills: [], clouds: [], scrollables: [] };
-    // scrollables: { mesh, speed, xMin, xMax, startX } — objects that scroll right-to-left
+    const refs = { sky: null, hills: [], clouds: [], scrollables: [], floaters: [] };
+    // scrollables: objects that scroll right-to-left
+    // floaters: objects that bob/float in place { mesh, baseY, amplitude, frequency, phase, rotSpeed }
 
-    // ── Sky gradient ──
+    // ── Full-screen gradient background plane (replaces flat purple) ──
+    const bgGeo = new THREE.PlaneGeometry(120, 80);
+    const bgMat = new THREE.ShaderMaterial({
+      uniforms: {
+        topColor: { value: new THREE.Color(0x1a0a3e) },
+        midColor: { value: new THREE.Color(0x2a1a5e) },
+        bottomColor: { value: new THREE.Color(0x0a0a2e) },
+        time: { value: 0 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 topColor;
+        uniform vec3 midColor;
+        uniform vec3 bottomColor;
+        uniform float time;
+        varying vec2 vUv;
+        void main() {
+          float t = vUv.y;
+          // Subtle wave distortion
+          t += sin(vUv.x * 3.0 + time * 0.3) * 0.02;
+          vec3 col;
+          if (t > 0.5) {
+            col = mix(midColor, topColor, (t - 0.5) * 2.0);
+          } else {
+            col = mix(bottomColor, midColor, t * 2.0);
+          }
+          // Subtle sparkle dots
+          float sparkle = sin(vUv.x * 80.0 + time) * sin(vUv.y * 60.0 - time * 0.7);
+          sparkle = smoothstep(0.97, 1.0, sparkle) * 0.15;
+          col += vec3(sparkle * 0.6, sparkle * 0.4, sparkle);
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
+      side: THREE.FrontSide,
+      depthWrite: false,
+    });
+    const bgPlane = new THREE.Mesh(bgGeo, bgMat);
+    bgPlane.position.set(0, 2, -25);
+    bgPlane.renderOrder = -2;
+    this.scene.add(bgPlane);
+    refs.bgPlane = bgPlane;
+
+    // ── Sky gradient (upper area) ──
     const skyGeo = new THREE.PlaneGeometry(80, 35);
     const skyMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -652,7 +701,6 @@ export class Renderer3D {
     const hillMat = new THREE.MeshStandardMaterial({
       color: 0x43b047, roughness: 0.9, metalness: 0.0,
     });
-
     const hillConfigs = [
       { radius: 8, x: -10, y: -2, z: -18, sx: 1.5, sy: 0.6, speed: 0.15 },
       { radius: 5, x: 5, y: -2, z: -16, sx: 1.2, sy: 0.7, speed: 0.15 },
@@ -660,7 +708,6 @@ export class Renderer3D {
       { radius: 3, x: -20, y: -2, z: -19, sx: 1.3, sy: 0.5, speed: 0.15 },
       { radius: 4, x: 35, y: -2, z: -17, sx: 1.1, sy: 0.65, speed: 0.15 },
     ];
-
     for (const hc of hillConfigs) {
       const geo = new THREE.SphereGeometry(hc.radius, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
       const mesh = new THREE.Mesh(geo, hillMat);
@@ -671,90 +718,33 @@ export class Renderer3D {
       refs.scrollables.push({ mesh, speed: hc.speed, xMin: -45, xMax: 45, startX: hc.x });
     }
 
-    // ── Clouds (medium parallax layer) — varied shapes & tints ──
+    // ── Clouds ──
     const sphereGeo = new THREE.SphereGeometry(1, 8, 6);
-
-    // Cloud shape builders — each returns a THREE.Group
     const cloudShapes = [
-      // Type A: wide & puffy (classic Mario cloud)
-      (mat) => {
-        const g = new THREE.Group();
-        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.8, 0.9, 1);
-        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(1.3, 0.4, 0); c2.scale.set(1.3, 0.8, 0.9);
-        const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-1.2, 0.3, 0); c3.scale.set(1.1, 0.7, 0.9);
-        const c4 = new THREE.Mesh(sphereGeo, mat); c4.position.set(0, 0.5, 0); c4.scale.set(1.0, 0.7, 0.8);
-        g.add(c1, c2, c3, c4);
-        return g;
-      },
-      // Type B: tall & narrow tower cloud
-      (mat) => {
-        const g = new THREE.Group();
-        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.0, 1.2, 0.9);
-        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(0.5, 0.7, 0); c2.scale.set(0.9, 1.0, 0.8);
-        const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-0.4, 0.5, 0.2); c3.scale.set(0.8, 0.8, 0.7);
-        g.add(c1, c2, c3);
-        return g;
-      },
-      // Type C: flat & stretched wispy cloud
-      (mat) => {
-        const g = new THREE.Group();
-        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(2.2, 0.4, 0.8);
-        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(1.6, 0.1, 0); c2.scale.set(1.4, 0.35, 0.7);
-        const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-1.5, 0.08, 0); c3.scale.set(1.2, 0.3, 0.6);
-        g.add(c1, c2, c3);
-        return g;
-      },
-      // Type D: small round puff (single fluffy ball)
-      (mat) => {
-        const g = new THREE.Group();
-        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.1, 0.9, 1.0);
-        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(0.6, 0.25, 0); c2.scale.set(0.7, 0.6, 0.7);
-        g.add(c1, c2);
-        return g;
-      },
-      // Type E: big chunky cumulus
-      (mat) => {
-        const g = new THREE.Group();
-        const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.6, 1.1, 1);
-        const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(1.0, 0.3, 0.2); c2.scale.set(1.3, 0.9, 0.8);
-        const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-0.9, 0.2, -0.1); c3.scale.set(1.1, 0.8, 0.9);
-        const c4 = new THREE.Mesh(sphereGeo, mat); c4.position.set(0.2, 0.7, 0); c4.scale.set(1.0, 0.6, 0.7);
-        const c5 = new THREE.Mesh(sphereGeo, mat); c5.position.set(-0.3, -0.1, 0.3); c5.scale.set(0.9, 0.5, 0.8);
-        g.add(c1, c2, c3, c4, c5);
-        return g;
-      },
+      (mat) => { const g = new THREE.Group(); const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.8, 0.9, 1); const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(1.3, 0.4, 0); c2.scale.set(1.3, 0.8, 0.9); const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-1.2, 0.3, 0); c3.scale.set(1.1, 0.7, 0.9); const c4 = new THREE.Mesh(sphereGeo, mat); c4.position.set(0, 0.5, 0); c4.scale.set(1.0, 0.7, 0.8); g.add(c1, c2, c3, c4); return g; },
+      (mat) => { const g = new THREE.Group(); const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.0, 1.2, 0.9); const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(0.5, 0.7, 0); c2.scale.set(0.9, 1.0, 0.8); const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-0.4, 0.5, 0.2); c3.scale.set(0.8, 0.8, 0.7); g.add(c1, c2, c3); return g; },
+      (mat) => { const g = new THREE.Group(); const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(2.2, 0.4, 0.8); const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(1.6, 0.1, 0); c2.scale.set(1.4, 0.35, 0.7); const c3 = new THREE.Mesh(sphereGeo, mat); c3.position.set(-1.5, 0.08, 0); c3.scale.set(1.2, 0.3, 0.6); g.add(c1, c2, c3); return g; },
+      (mat) => { const g = new THREE.Group(); const c1 = new THREE.Mesh(sphereGeo, mat); c1.scale.set(1.1, 0.9, 1.0); const c2 = new THREE.Mesh(sphereGeo, mat); c2.position.set(0.6, 0.25, 0); c2.scale.set(0.7, 0.6, 0.7); g.add(c1, c2); return g; },
     ];
-
-    // Different cloud tints
     const cloudTints = [
-      { color: 0xffffff, opacity: 0.9 },   // pure white
-      { color: 0xe8f0ff, opacity: 0.85 },   // icy blue-white
-      { color: 0xfff0e0, opacity: 0.8 },    // warm sunset cream
-      { color: 0xffd6e8, opacity: 0.75 },   // sakura pink
-      { color: 0xd4f0ff, opacity: 0.85 },   // sky blue
-      { color: 0xfff8cc, opacity: 0.8 },    // lemon yellow
-      { color: 0xe0ffe0, opacity: 0.7 },    // mint green tint
+      { color: 0xffffff, opacity: 0.9 }, { color: 0xe8f0ff, opacity: 0.85 },
+      { color: 0xfff0e0, opacity: 0.8 }, { color: 0xffd6e8, opacity: 0.75 },
+      { color: 0xd4f0ff, opacity: 0.85 }, { color: 0xfff8cc, opacity: 0.8 },
     ];
-
     const cloudConfigs = [
-      { x: -12,  y: 10,   z: -15, scale: 1.2, speed: 0.4,  shape: 0, tint: 0 },
-      { x: 3,    y: 11,   z: -17, scale: 0.9, speed: 0.35, shape: 2, tint: 1 },
-      { x: 18,   y: 9,    z: -14, scale: 0.7, speed: 0.45, shape: 3, tint: 3 },
-      { x: -25,  y: 10.5, z: -16, scale: 1.0, speed: 0.38, shape: 1, tint: 2 },
-      { x: 30,   y: 11.5, z: -18, scale: 0.8, speed: 0.42, shape: 4, tint: 0 },
-      { x: -35,  y: 9.5,  z: -15, scale: 0.6, speed: 0.32, shape: 2, tint: 4 },
-      { x: 40,   y: 10,   z: -16, scale: 1.1, speed: 0.36, shape: 0, tint: 5 },
-      { x: -5,   y: 12,   z: -19, scale: 0.5, speed: 0.28, shape: 3, tint: 6 },
-      { x: 25,   y: 12.5, z: -20, scale: 0.7, speed: 0.25, shape: 1, tint: 3 },
+      { x: -12, y: 10, z: -15, scale: 1.2, speed: 0.4, shape: 0, tint: 0 },
+      { x: 3, y: 11, z: -17, scale: 0.9, speed: 0.35, shape: 2, tint: 1 },
+      { x: 18, y: 9, z: -14, scale: 0.7, speed: 0.45, shape: 3, tint: 3 },
+      { x: -25, y: 10.5, z: -16, scale: 1.0, speed: 0.38, shape: 1, tint: 2 },
+      { x: 30, y: 11.5, z: -18, scale: 0.8, speed: 0.42, shape: 0, tint: 0 },
+      { x: -35, y: 9.5, z: -15, scale: 0.6, speed: 0.32, shape: 2, tint: 4 },
+      { x: 40, y: 10, z: -16, scale: 1.1, speed: 0.36, shape: 0, tint: 5 },
+      { x: -5, y: 12, z: -19, scale: 0.5, speed: 0.28, shape: 3, tint: 3 },
     ];
-
     for (const cc of cloudConfigs) {
       const tint = cloudTints[cc.tint % cloudTints.length];
-      const mat = new THREE.MeshBasicMaterial({
-        color: tint.color, transparent: true, opacity: tint.opacity,
-      });
-      const builder = cloudShapes[cc.shape % cloudShapes.length];
-      const group = builder(mat);
+      const mat = new THREE.MeshBasicMaterial({ color: tint.color, transparent: true, opacity: tint.opacity });
+      const group = cloudShapes[cc.shape % cloudShapes.length](mat);
       group.position.set(cc.x, cc.y, cc.z);
       group.scale.setScalar(cc.scale);
       this.scene.add(group);
@@ -762,53 +752,40 @@ export class Renderer3D {
       refs.scrollables.push({ mesh: group, speed: cc.speed, xMin: -50, xMax: 50, startX: cc.x });
     }
 
-    // ── Mario-style foreground decorations (fast parallax) ──
-
-    // Green Pipe decoration
+    // ── Mario-style foreground decorations ──
     const createPipeDeco = (x, z, height, speed) => {
       const group = new THREE.Group();
       const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, height, 12);
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0x43b047, metalness: 0.2, roughness: 0.7 });
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.y = height / 2;
-      group.add(body);
+      const body = new THREE.Mesh(bodyGeo, bodyMat); body.position.y = height / 2; group.add(body);
       const lipGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.2, 12);
       const lipMat = new THREE.MeshStandardMaterial({ color: 0x2d8a2d, metalness: 0.2, roughness: 0.6 });
-      const lip = new THREE.Mesh(lipGeo, lipMat);
-      lip.position.y = height + 0.1;
-      group.add(lip);
+      const lip = new THREE.Mesh(lipGeo, lipMat); lip.position.y = height + 0.1; group.add(lip);
       const insideGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.08, 12);
       const insideMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-      const inside = new THREE.Mesh(insideGeo, insideMat);
-      inside.position.y = height + 0.18;
-      group.add(inside);
+      const inside = new THREE.Mesh(insideGeo, insideMat); inside.position.y = height + 0.18; group.add(inside);
       group.position.set(x, -2, z);
       this.scene.add(group);
       refs.scrollables.push({ mesh: group, speed, xMin: -40, xMax: 40, startX: x });
     };
-
     createPipeDeco(-15, -12, 2.5, 0.6);
     createPipeDeco(12, -13, 1.8, 0.6);
     createPipeDeco(30, -11, 3.0, 0.6);
 
-    // Brick block / question block decorations floating in background
+    // Block decorations
     const createBlockDeco = (x, y, z, isQuestion, speed) => {
       const geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
       const mat = new THREE.MeshStandardMaterial({
-        color: isQuestion ? 0xfbd000 : 0xc4713b,
-        metalness: 0.15,
-        roughness: 0.75,
-        emissive: isQuestion ? 0xfbd000 : 0x000000,
-        emissiveIntensity: isQuestion ? 0.08 : 0,
+        color: isQuestion ? 0xfbd000 : 0xc4713b, metalness: 0.15, roughness: 0.75,
+        emissive: isQuestion ? 0xfbd000 : 0x000000, emissiveIntensity: isQuestion ? 0.08 : 0,
       });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(x, y, z);
-      mesh.castShadow = true;
+      const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x, y, z); mesh.castShadow = true;
       this.scene.add(mesh);
       refs.scrollables.push({ mesh, speed, xMin: -40, xMax: 40, startX: x });
+      if (isQuestion) {
+        refs.floaters.push({ mesh, baseY: y, amplitude: 0.15, frequency: 2.0, phase: Math.random() * 6.28, rotSpeed: 0 });
+      }
     };
-
-    // A row of blocks at different depths
     createBlockDeco(-18, 6, -12, true, 0.5);
     createBlockDeco(-16.4, 6, -12, false, 0.5);
     createBlockDeco(-14.8, 6, -12, false, 0.5);
@@ -817,74 +794,225 @@ export class Renderer3D {
     createBlockDeco(21.6, 4, -11, true, 0.55);
     createBlockDeco(23.2, 4, -11, false, 0.55);
 
-    // Bushes (small green rounded shapes near ground)
-    const bushMat = new THREE.MeshStandardMaterial({
-      color: 0x2d8a2d, roughness: 0.9, metalness: 0,
-    });
-
+    // Bushes
+    const bushMat = new THREE.MeshStandardMaterial({ color: 0x2d8a2d, roughness: 0.9, metalness: 0 });
     const createBush = (x, z, scale, speed) => {
       const group = new THREE.Group();
       const sg = new THREE.SphereGeometry(0.8, 10, 8);
-      const b1 = new THREE.Mesh(sg, bushMat);
-      b1.scale.set(1.3, 0.7, 1);
-      const b2 = new THREE.Mesh(sg, bushMat);
-      b2.position.set(0.8, -0.1, 0);
-      b2.scale.set(0.9, 0.55, 0.8);
-      const b3 = new THREE.Mesh(sg, bushMat);
-      b3.position.set(-0.7, -0.1, 0);
-      b3.scale.set(0.8, 0.5, 0.8);
+      const b1 = new THREE.Mesh(sg, bushMat); b1.scale.set(1.3, 0.7, 1);
+      const b2 = new THREE.Mesh(sg, bushMat); b2.position.set(0.8, -0.1, 0); b2.scale.set(0.9, 0.55, 0.8);
+      const b3 = new THREE.Mesh(sg, bushMat); b3.position.set(-0.7, -0.1, 0); b3.scale.set(0.8, 0.5, 0.8);
       group.add(b1, b2, b3);
-      group.position.set(x, -1.5, z);
-      group.scale.setScalar(scale);
+      group.position.set(x, -1.5, z); group.scale.setScalar(scale);
       this.scene.add(group);
       refs.scrollables.push({ mesh: group, speed, xMin: -40, xMax: 40, startX: x });
     };
-
     createBush(-8, -11, 1.0, 0.55);
     createBush(5, -12, 0.8, 0.55);
     createBush(22, -10, 1.2, 0.55);
     createBush(-22, -12, 0.9, 0.55);
 
-    // ── Floating background stars (slow twinkle layer) ──
+    // ── Floating stars (twinkle & spin) ──
     const starGeo = new THREE.OctahedronGeometry(0.3, 0);
     const starConfigs = [
-      { x: -30, y: 8,  z: -13, color: 0xfbd000, scale: 0.8, speed: 0.3 },
-      { x: 15,  y: 13, z: -19, color: 0xffffff, scale: 0.5, speed: 0.2 },
-      { x: -8,  y: 14, z: -20, color: 0xffd6e8, scale: 0.6, speed: 0.22 },
-      { x: 35,  y: 7,  z: -12, color: 0xfbd000, scale: 0.7, speed: 0.33 },
+      { x: -30, y: 8, z: -13, color: 0xfbd000, scale: 0.8, speed: 0.3 },
+      { x: 15, y: 13, z: -19, color: 0xffffff, scale: 0.5, speed: 0.2 },
+      { x: -8, y: 14, z: -20, color: 0xffd6e8, scale: 0.6, speed: 0.22 },
+      { x: 35, y: 7, z: -12, color: 0xfbd000, scale: 0.7, speed: 0.33 },
       { x: -18, y: 12, z: -18, color: 0xd4f0ff, scale: 0.4, speed: 0.18 },
-      { x: 42,  y: 11, z: -17, color: 0xfff8cc, scale: 0.55, speed: 0.26 },
+      { x: 42, y: 11, z: -17, color: 0xfff8cc, scale: 0.55, speed: 0.26 },
     ];
     for (const sc of starConfigs) {
-      const mat = new THREE.MeshBasicMaterial({
-        color: sc.color, transparent: true, opacity: 0.9,
-      });
+      const mat = new THREE.MeshBasicMaterial({ color: sc.color, transparent: true, opacity: 0.9 });
       const mesh = new THREE.Mesh(starGeo, mat);
-      mesh.position.set(sc.x, sc.y, sc.z);
-      mesh.scale.setScalar(sc.scale);
-      mesh.rotation.y = Math.random() * Math.PI;
+      mesh.position.set(sc.x, sc.y, sc.z); mesh.scale.setScalar(sc.scale);
       this.scene.add(mesh);
       refs.scrollables.push({ mesh, speed: sc.speed, xMin: -50, xMax: 50, startX: sc.x });
+      refs.floaters.push({ mesh, baseY: sc.y, amplitude: 0.3, frequency: 1.5, phase: Math.random() * 6.28, rotSpeed: 1.5 });
     }
 
-    // ── Rainbow arc (static, slow drift) ──
+    // ── Rainbow arc ──
     const rainbowColors = [0xe52521, 0xff8c00, 0xfbd000, 0x43b047, 0x049cd8, 0x6b3fa0];
     const rainbowGroup = new THREE.Group();
     for (let i = 0; i < rainbowColors.length; i++) {
-      const radius = 8 - i * 0.5;
-      const tubeR = 0.2;
-      const arcGeo = new THREE.TorusGeometry(radius, tubeR, 8, 32, Math.PI);
-      const arcMat = new THREE.MeshBasicMaterial({
-        color: rainbowColors[i], transparent: true, opacity: 0.35,
-      });
-      const arc = new THREE.Mesh(arcGeo, arcMat);
-      rainbowGroup.add(arc);
+      const arcGeo = new THREE.TorusGeometry(8 - i * 0.5, 0.2, 8, 32, Math.PI);
+      const arcMat = new THREE.MeshBasicMaterial({ color: rainbowColors[i], transparent: true, opacity: 0.35 });
+      rainbowGroup.add(new THREE.Mesh(arcGeo, arcMat));
     }
-    rainbowGroup.position.set(28, 2, -21);
-    rainbowGroup.rotation.z = 0;
-    rainbowGroup.scale.set(1.0, 0.7, 1);
+    rainbowGroup.position.set(28, 2, -21); rainbowGroup.scale.set(1.0, 0.7, 1);
     this.scene.add(rainbowGroup);
     refs.scrollables.push({ mesh: rainbowGroup, speed: 0.12, xMin: -50, xMax: 55, startX: 28 });
+
+    // ══════════════════════════════════════════════════════════════
+    // ── NEW: Floating Mario elements in the foreground/side areas ──
+    // ══════════════════════════════════════════════════════════════
+
+    // --- Floating gold coins (decorative, in background) ---
+    const bgCoinGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.06, 12);
+    const bgCoinMat = new THREE.MeshStandardMaterial({
+      color: 0xffc107, metalness: 0.8, roughness: 0.2,
+      emissive: 0xffc107, emissiveIntensity: 0.15,
+    });
+    const bgCoinConfigs = [
+      { x: -7, y: -4, z: -5, scale: 1.0 },
+      { x: 7, y: -3.5, z: -6, scale: 0.8 },
+      { x: -9, y: -5, z: -4, scale: 0.7 },
+      { x: 9, y: -4.5, z: -5, scale: 0.9 },
+      { x: -6, y: -6, z: -3, scale: 0.6 },
+      { x: 6, y: -5.5, z: -4, scale: 0.75 },
+      { x: 0, y: -7, z: -3, scale: 0.85 },
+      { x: -3, y: -8, z: -2, scale: 0.65 },
+      { x: 4, y: -7.5, z: -3, scale: 0.7 },
+    ];
+    for (const bc of bgCoinConfigs) {
+      const mesh = new THREE.Mesh(bgCoinGeo, bgCoinMat);
+      mesh.position.set(bc.x, bc.y, bc.z);
+      mesh.scale.setScalar(bc.scale);
+      this.scene.add(mesh);
+      refs.floaters.push({
+        mesh, baseY: bc.y,
+        amplitude: 0.2 + Math.random() * 0.15,
+        frequency: 1.0 + Math.random() * 0.5,
+        phase: Math.random() * 6.28,
+        rotSpeed: 2.0 + Math.random(),
+      });
+    }
+
+    // --- Floating Super Stars (sparkly, gentle bob) ---
+    const fStarGeo = new THREE.OctahedronGeometry(0.4, 0);
+    const fStarConfigs = [
+      { x: -8.5, y: -3, z: -6, color: 0xfbd000, scale: 0.7 },
+      { x: 8.5, y: -6, z: -4, color: 0xfbd000, scale: 0.6 },
+      { x: -5, y: -7.5, z: -3, color: 0xfff8cc, scale: 0.5 },
+      { x: 3, y: -9, z: -2, color: 0xfbd000, scale: 0.55 },
+    ];
+    for (const fs of fStarConfigs) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: fs.color, transparent: true, opacity: 0.85,
+      });
+      const mesh = new THREE.Mesh(fStarGeo, mat);
+      mesh.position.set(fs.x, fs.y, fs.z); mesh.scale.setScalar(fs.scale);
+      this.scene.add(mesh);
+      refs.floaters.push({
+        mesh, baseY: fs.y,
+        amplitude: 0.35, frequency: 0.8, phase: Math.random() * 6.28,
+        rotSpeed: 2.5,
+      });
+    }
+
+    // --- Floating Mushrooms (red cap + white dots, gentle bob) ---
+    const createFloatingMushroom = (x, y, z, scale) => {
+      const group = new THREE.Group();
+      // Cap
+      const capGeo = new THREE.SphereGeometry(0.35, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      const capMat = new THREE.MeshStandardMaterial({ color: 0xe52521, metalness: 0.1, roughness: 0.7 });
+      const cap = new THREE.Mesh(capGeo, capMat); cap.position.y = 0.15; group.add(cap);
+      // White dots on cap
+      const dotGeo = new THREE.SphereGeometry(0.08, 6, 4);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      [[-0.15, 0.3, 0.2], [0.2, 0.35, -0.1], [-0.05, 0.4, -0.15]].forEach(([dx, dy, dz]) => {
+        const dot = new THREE.Mesh(dotGeo, dotMat); dot.position.set(dx, dy, dz); group.add(dot);
+      });
+      // Stem
+      const stemGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.2, 8);
+      const stemMat = new THREE.MeshStandardMaterial({ color: 0xf5e6c8 });
+      const stem = new THREE.Mesh(stemGeo, stemMat); stem.position.y = 0.02; group.add(stem);
+      // Eyes
+      const eyeGeo = new THREE.SphereGeometry(0.04, 6, 4);
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+      const le = new THREE.Mesh(eyeGeo, eyeMat); le.position.set(-0.08, 0.12, 0.15); group.add(le);
+      const re = new THREE.Mesh(eyeGeo, eyeMat); re.position.set(0.08, 0.12, 0.15); group.add(re);
+
+      group.position.set(x, y, z); group.scale.setScalar(scale);
+      this.scene.add(group);
+      refs.floaters.push({
+        mesh: group, baseY: y,
+        amplitude: 0.25, frequency: 0.9, phase: Math.random() * 6.28,
+        rotSpeed: 0.4,
+      });
+    };
+    createFloatingMushroom(-8, -5.5, -4, 1.2);
+    createFloatingMushroom(7.5, -7, -3, 1.0);
+    createFloatingMushroom(-2, -8.5, -2, 0.9);
+
+    // --- Floating 1-UP green mushroom ---
+    const create1UPMushroom = (x, y, z, scale) => {
+      const group = new THREE.Group();
+      const capGeo = new THREE.SphereGeometry(0.35, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      const capMat = new THREE.MeshStandardMaterial({ color: 0x43b047, metalness: 0.1, roughness: 0.7 });
+      const cap = new THREE.Mesh(capGeo, capMat); cap.position.y = 0.15; group.add(cap);
+      const dotGeo = new THREE.SphereGeometry(0.08, 6, 4);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      [[-0.15, 0.3, 0.2], [0.2, 0.35, -0.1]].forEach(([dx, dy, dz]) => {
+        const dot = new THREE.Mesh(dotGeo, dotMat); dot.position.set(dx, dy, dz); group.add(dot);
+      });
+      const stemGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.2, 8);
+      const stemMat = new THREE.MeshStandardMaterial({ color: 0xf5e6c8 });
+      const stem = new THREE.Mesh(stemGeo, stemMat); stem.position.y = 0.02; group.add(stem);
+      group.position.set(x, y, z); group.scale.setScalar(scale);
+      this.scene.add(group);
+      refs.floaters.push({
+        mesh: group, baseY: y,
+        amplitude: 0.3, frequency: 0.7, phase: Math.random() * 6.28,
+        rotSpeed: 0.5,
+      });
+    };
+    create1UPMushroom(9, -4, -5, 1.1);
+
+    // --- Floating Fire Flowers ---
+    const createFireFlower = (x, y, z, scale) => {
+      const group = new THREE.Group();
+      // Petals (orange-red)
+      const petalGeo = new THREE.SphereGeometry(0.12, 6, 4);
+      const petalMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff4500, emissiveIntensity: 0.2 });
+      for (let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2;
+        const petal = new THREE.Mesh(petalGeo, petalMat);
+        petal.position.set(Math.cos(angle) * 0.18, 0.35, Math.sin(angle) * 0.18);
+        group.add(petal);
+      }
+      // Center (yellow)
+      const centerGeo = new THREE.SphereGeometry(0.1, 8, 6);
+      const centerMat = new THREE.MeshBasicMaterial({ color: 0xfbd000 });
+      const center = new THREE.Mesh(centerGeo, centerMat); center.position.y = 0.35; group.add(center);
+      // Stem
+      const stemGeo = new THREE.CylinderGeometry(0.04, 0.05, 0.3, 6);
+      const stemMat = new THREE.MeshStandardMaterial({ color: 0x43b047 });
+      const stem = new THREE.Mesh(stemGeo, stemMat); stem.position.y = 0.15; group.add(stem);
+
+      group.position.set(x, y, z); group.scale.setScalar(scale);
+      this.scene.add(group);
+      refs.floaters.push({
+        mesh: group, baseY: y,
+        amplitude: 0.2, frequency: 1.2, phase: Math.random() * 6.28,
+        rotSpeed: 1.0,
+      });
+    };
+    createFireFlower(-6, -6.5, -3, 1.5);
+    createFireFlower(5, -8, -2, 1.3);
+
+    // --- Twinkling particle stars (very small, scattered) ---
+    const tinyStarGeo = new THREE.OctahedronGeometry(0.08, 0);
+    const tinyStarColors = [0xffffff, 0xffd700, 0x87ceeb, 0xffd6e8, 0xc8a2ff];
+    for (let i = 0; i < 25; i++) {
+      const color = tinyStarColors[i % tinyStarColors.length];
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6 + Math.random() * 0.3 });
+      const mesh = new THREE.Mesh(tinyStarGeo, mat);
+      const x = (Math.random() - 0.5) * 24;
+      const y = -3 - Math.random() * 9;
+      const z = -2 - Math.random() * 8;
+      mesh.position.set(x, y, z);
+      mesh.scale.setScalar(0.5 + Math.random() * 1.5);
+      this.scene.add(mesh);
+      refs.floaters.push({
+        mesh, baseY: y,
+        amplitude: 0.1 + Math.random() * 0.15,
+        frequency: 1.5 + Math.random(),
+        phase: Math.random() * 6.28,
+        rotSpeed: 3 + Math.random() * 2,
+        twinkle: true,
+      });
+    }
 
     return refs;
   }
@@ -1054,11 +1182,30 @@ export class Renderer3D {
     if (this.bgRefs?.scrollables) {
       for (const s of this.bgRefs.scrollables) {
         s.mesh.position.x -= s.speed * dt;
-        // Wrap around when off-screen left → reappear on right
         if (s.mesh.position.x < s.xMin) {
           s.mesh.position.x = s.xMax;
         }
       }
+    }
+
+    // Animate floating/bobbing elements
+    if (this.bgRefs?.floaters) {
+      const t = this._time;
+      for (const f of this.bgRefs.floaters) {
+        f.mesh.position.y = f.baseY + Math.sin(t * f.frequency + f.phase) * f.amplitude;
+        if (f.rotSpeed) {
+          f.mesh.rotation.y += f.rotSpeed * dt;
+        }
+        if (f.twinkle) {
+          const opacity = 0.3 + 0.5 * (0.5 + 0.5 * Math.sin(t * f.frequency * 2 + f.phase));
+          f.mesh.material.opacity = opacity;
+        }
+      }
+    }
+
+    // Animate background gradient shader
+    if (this.bgRefs?.bgPlane) {
+      this.bgRefs.bgPlane.material.uniforms.time.value = this._time;
     }
 
     // Animate boss

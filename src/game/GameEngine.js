@@ -122,6 +122,13 @@ export class GameEngine {
     // Step physics
     this.physics.step(dt);
 
+    // Stabilize coins: prevent flipping by damping X/Z angular velocity
+    for (const coin of this.coinManager.getCoins()) {
+      const av = coin.body.angularVelocity;
+      av.x *= 0.1;
+      av.z *= 0.1;
+    }
+
     // Update pusher
     this.pusher.update();
 
