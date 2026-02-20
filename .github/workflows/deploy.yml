@@ -25,7 +25,37 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Run tests
-        run: npx vitest run --reporter=verbose --reporter=github-actions
+        run: npx vitest run --reporter=verbose --reporter=github-actions --reporter=json --outputFile=test-results.json
+      - name: Test summary
+        if: always()
+        run: |
+          node -e "
+            const fs = require('fs');
+            try {
+              const r = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+              const passed = r.numPassedTests;
+              const failed = r.numFailedTests;
+              const total = r.numTotalTests;
+              const suites = r.numTotalTestSuites;
+              const icon = failed === 0 ? '✅' : '❌';
+              const summary = [
+                '## ' + icon + ' Test Results',
+                '',
+                '| | Count |',
+                '|---|---:|',
+                '| Test Suites | ' + suites + ' |',
+                '| Total Tests | ' + total + ' |',
+                '| Passed | ' + passed + ' |',
+                '| Failed | ' + failed + ' |',
+              ].join('\n');
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+              console.log(summary);
+            } catch(e) {
+              const msg = '## ❌ Test results unavailable';
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, msg);
+              console.log(msg);
+            }
+          "
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
