@@ -24,13 +24,14 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState(null);
   const hasAutoSpun = useRef(false);
+  const claimBtnRef = useRef(null);
 
   // Reset state and auto-spin when overlay becomes visible
   useEffect(() => {
     if (visible) {
       setSpinning(false);
       setResult(null);
-      setRotation(0);  // Reset wheel to slot-0 position so visual always matches result
+      setRotation(0);
       hasAutoSpun.current = false;
     }
   }, [visible]);
@@ -48,13 +49,15 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
     }
   }, [visible, spinning, result]);
 
-  // Auto-close 2 seconds after result appears
+  // Auto-click claim button after 2 seconds
   useEffect(() => {
-    if (result && visible) {
-      const timer = setTimeout(() => onClose?.(), 2000);
+    if (result) {
+      const timer = setTimeout(() => {
+        claimBtnRef.current?.click();
+      }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [result, visible, onClose]);
+  }, [result]);
 
   const doSpin = useCallback(() => {
     if (spinning) return;
@@ -156,9 +159,16 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
           </div>
         )}
 
-        {/* Auto-close countdown hint */}
+        {/* Claim button — auto-clicked after 2 seconds */}
         {result && (
-          <div className="text-gray-400 text-xs mt-1 animate-pulse">自動領取中...</div>
+          <button
+            ref={claimBtnRef}
+            onClick={onClose}
+            className="bg-mario-green text-white px-6 py-2 rounded-xl font-bold
+                       cursor-pointer hover:brightness-110 active:scale-95 transition-transform"
+          >
+            領取
+          </button>
         )}
       </div>
     </div>
