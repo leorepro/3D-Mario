@@ -371,6 +371,19 @@ export const BULLET_BILL_PUSH_FORCE = 6;
 export const BULLET_BILL_HEIGHT = 1.0;
 export const BULLET_BILL_ENTRY_X = 10;
 
+// ── Thwomp ──
+export const THWOMP_MIN_INTERVAL = 50000;
+export const THWOMP_MAX_INTERVAL = 160000;
+export const THWOMP_WARNING_MS = 1200;    // shadow grows, warning sound
+export const THWOMP_SLAM_MS = 300;        // fast slam down
+export const THWOMP_STUNNED_MS = 1500;    // sits on table, coins scatter
+export const THWOMP_RISE_MS = 800;        // rises back up
+export const THWOMP_SLAM_FORCE = 8;       // outward force on coins
+export const THWOMP_SLAM_RADIUS = 4.0;    // radius of impact
+export const THWOMP_SIZE = { w: 1.6, h: 1.8, d: 1.2 }; // width, height, depth
+export const THWOMP_START_Y = 12;         // high above table
+export const THWOMP_LAND_Y = 1.2;        // landing height on table
+
 // ── Material Colors ──
 export const MATERIAL_CONFIG = {
   coin: { color: 0xffc107, metalness: 0.8, roughness: 0.2 },

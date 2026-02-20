@@ -110,6 +110,9 @@ export class Renderer3D {
     // Background scene (sky + hills)
     this.bgRefs = this.createBackground();
 
+    // Scene-specific decorations (cleared/rebuilt on scene switch)
+    this.sceneDecoMeshes = [];
+
     // Boss mesh (created on demand)
     this.bossMesh = null;
 
@@ -1710,6 +1713,151 @@ export class Renderer3D {
     }
   }
 
+  // ─── Thwomp ───
+  showThwomp() {
+    if (this.thwompMesh) this.hideThwomp();
+
+    const group = new THREE.Group();
+
+    // Main body — gray stone block
+    const bodyGeo = new THREE.BoxGeometry(C.THWOMP_SIZE.w, C.THWOMP_SIZE.h, C.THWOMP_SIZE.d);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x777788, metalness: 0.2, roughness: 0.9,
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.castShadow = true;
+    group.add(body);
+
+    // Angry face — eyes
+    const eyeGeo = new THREE.SphereGeometry(0.2, 8, 6);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const pupilGeo = new THREE.SphereGeometry(0.1, 6, 4);
+    const pupilMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Mesh(eyeGeo, eyeMat);
+      eye.position.set(side * 0.35, 0.2, C.THWOMP_SIZE.d / 2 + 0.01);
+      group.add(eye);
+      const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+      pupil.position.set(side * 0.35, 0.15, C.THWOMP_SIZE.d / 2 + 0.1);
+      group.add(pupil);
+    }
+
+    // Angry eyebrows
+    const browGeo = new THREE.BoxGeometry(0.3, 0.06, 0.06);
+    const browMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+    for (const side of [-1, 1]) {
+      const brow = new THREE.Mesh(browGeo, browMat);
+      brow.position.set(side * 0.35, 0.4, C.THWOMP_SIZE.d / 2 + 0.02);
+      brow.rotation.z = side * 0.3;
+      group.add(brow);
+    }
+
+    // Mouth — jagged teeth
+    const mouthGeo = new THREE.BoxGeometry(0.6, 0.15, 0.08);
+    const mouthMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const mouth = new THREE.Mesh(mouthGeo, mouthMat);
+    mouth.position.set(0, -0.25, C.THWOMP_SIZE.d / 2 + 0.01);
+    group.add(mouth);
+
+    // Teeth (triangular prisms)
+    const toothGeo = new THREE.ConeGeometry(0.08, 0.15, 3);
+    const toothMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
+    for (let i = 0; i < 5; i++) {
+      const tooth = new THREE.Mesh(toothGeo, toothMat);
+      tooth.position.set(-0.24 + i * 0.12, -0.35, C.THWOMP_SIZE.d / 2 + 0.01);
+      tooth.rotation.x = Math.PI;
+      group.add(tooth);
+    }
+
+    // Spiky protrusions on sides
+    const spikeGeo = new THREE.ConeGeometry(0.1, 0.25, 4);
+    const spikeMat = new THREE.MeshStandardMaterial({ color: 0x666677, metalness: 0.3, roughness: 0.8 });
+    const spikePositions = [
+      [C.THWOMP_SIZE.w / 2 + 0.1, 0.3, 0],
+      [C.THWOMP_SIZE.w / 2 + 0.1, -0.3, 0],
+      [-C.THWOMP_SIZE.w / 2 - 0.1, 0.3, 0],
+      [-C.THWOMP_SIZE.w / 2 - 0.1, -0.3, 0],
+    ];
+    for (const [x, y, z] of spikePositions) {
+      const spike = new THREE.Mesh(spikeGeo, spikeMat);
+      spike.position.set(x, y, z);
+      spike.rotation.z = x > 0 ? -Math.PI / 2 : Math.PI / 2;
+      group.add(spike);
+    }
+
+    // Shadow on table (flat dark circle below)
+    const shadowGeo = new THREE.CircleGeometry(1.0, 16);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      color: 0x000000, transparent: true, opacity: 0,
+    });
+    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.set(0, 0.05, 0);
+    group.userData.shadow = shadow;
+    this.scene.add(shadow); // separate from group so it stays on table
+
+    group.position.set(0, C.THWOMP_START_Y, 0);
+    this.scene.add(group);
+    this.thwompMesh = group;
+    this.thwompShadow = shadow;
+  }
+
+  hideThwomp() {
+    if (this.thwompMesh) {
+      this.scene.remove(this.thwompMesh);
+      this.thwompMesh = null;
+    }
+    if (this.thwompShadow) {
+      this.scene.remove(this.thwompShadow);
+      this.thwompShadow = null;
+    }
+  }
+
+  updateThwompAnimation(phase, progress) {
+    if (!this.thwompMesh) return;
+    const p = Math.max(0, Math.min(1, progress));
+
+    if (phase === 'warning') {
+      // Shadow appears and grows, thwomp shakes slightly above
+      const shadowOpacity = p * 0.5;
+      const shadowScale = 0.3 + p * 0.7;
+      if (this.thwompShadow) {
+        this.thwompShadow.material.opacity = shadowOpacity;
+        this.thwompShadow.scale.set(shadowScale, shadowScale, 1);
+      }
+      // Slight shake
+      const shake = Math.sin(this._time * 30) * 0.05 * p;
+      this.thwompMesh.position.set(shake, C.THWOMP_START_Y - p * 2, 0);
+    } else if (phase === 'slam') {
+      // Fast slam down
+      const eased = p * p * p; // cubic ease-in for fast slam
+      const y = C.THWOMP_START_Y - 2 - (C.THWOMP_START_Y - 2 - C.THWOMP_LAND_Y) * eased;
+      this.thwompMesh.position.set(0, y, 0);
+      if (this.thwompShadow) {
+        this.thwompShadow.material.opacity = 0.5 + p * 0.3;
+        this.thwompShadow.scale.set(1, 1, 1);
+      }
+    } else if (phase === 'stunned') {
+      // Sitting on table, shaking slightly
+      const shake = Math.sin(this._time * 15) * 0.02;
+      this.thwompMesh.position.set(shake, C.THWOMP_LAND_Y, 0);
+      // Eyes blink
+      if (this.thwompShadow) {
+        this.thwompShadow.material.opacity = 0.6;
+      }
+    } else if (phase === 'rise') {
+      // Rise back up
+      const eased = 1 - Math.pow(1 - p, 2); // ease-out
+      const y = C.THWOMP_LAND_Y + (C.THWOMP_START_Y - C.THWOMP_LAND_Y) * eased;
+      this.thwompMesh.position.set(0, y, 0);
+      if (this.thwompShadow) {
+        this.thwompShadow.material.opacity = 0.6 * (1 - p);
+        const s = 1 - p * 0.7;
+        this.thwompShadow.scale.set(s, s, 1);
+      }
+    }
+  }
+
   flashBossDamage() {
     if (!this.bossMesh) return;
     // Quick red flash
@@ -1981,10 +2129,11 @@ export class Renderer3D {
     }
     this.itemMeshes.clear();
 
-    // Dispose boss, lakitu & bullet bill
+    // Dispose boss, lakitu, bullet bill & thwomp
     this.hideBoss();
     this.hideLakitu();
     this.hideBulletBill();
+    this.hideThwomp();
 
     this.smallCoinGeometry.dispose();
     this.largeCoinGeometry.dispose();

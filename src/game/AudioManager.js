@@ -289,6 +289,28 @@ export class AudioManager {
     });
   }
 
+  /** Thwomp warning — ominous descending rumble */
+  playThwompWarning() {
+    this._playTone(200, 0.4, 'sawtooth', 0.15);
+    setTimeout(() => this._playTone(150, 0.3, 'sawtooth', 0.18), 200);
+    setTimeout(() => this._playTone(100, 0.4, 'sawtooth', 0.2), 400);
+  }
+
+  /** Thwomp slam — heavy impact */
+  playThwompSlam() {
+    this._playTone(50, 0.5, 'sawtooth', 0.35);
+    this._playNoise(0.4, 0.25);
+    setTimeout(() => this._playTone(30, 0.3, 'sine', 0.3), 50);
+    this._playTone(80, 0.2, 'triangle', 0.2);
+  }
+
+  /** Thwomp rise — ascending groan */
+  playThwompRise() {
+    [100, 150, 200, 250].forEach((f, i) => {
+      setTimeout(() => this._playTone(f, 0.15, 'sawtooth', 0.1), i * 80);
+    });
+  }
+
   /** Bullet Bill appears — rumbling approach */
   playBulletBillAppear() {
     this._playTone(80, 0.4, 'sawtooth', 0.3);

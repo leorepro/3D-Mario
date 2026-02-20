@@ -103,6 +103,11 @@ export class GameEngine {
     this.bulletBillNextTime = Date.now() + this._randomBulletBillDelay();
     this.bulletBillPhaseStart = 0;
 
+    // Thwomp state
+    this.thwompState = 'idle'; // idle | warning | slamming | stunned | rising
+    this.thwompNextTime = Date.now() + this._randomThwompDelay();
+    this.thwompPhaseStart = 0;
+
     // Restore scene from save
     const savedScene = this.saveManager.getCurrentScene();
     if (savedScene && savedScene !== 'overworld') {
@@ -183,6 +188,9 @@ export class GameEngine {
 
     // Update Bullet Bill event
     this.updateBulletBill();
+
+    // Update Thwomp event
+    this.updateThwomp();
 
     // Update boss
     if (this.bossSystem.isActive()) {
@@ -728,6 +736,113 @@ export class GameEngine {
 
   _randomBulletBillDelay() {
     const base = C.BULLET_BILL_MIN_INTERVAL + Math.random() * (C.BULLET_BILL_MAX_INTERVAL - C.BULLET_BILL_MIN_INTERVAL);
+    const scale = this.levelSystem.getDifficultyScale();
+    return base / scale.eventFreq;
+  }
+
+  // ─── Thwomp event ───
+  updateThwomp() {
+    const now = Date.now();
+
+    switch (this.thwompState) {
+      case 'idle':
+        // Only trigger if thwomp_event is unlocked
+        if (now >= this.thwompNextTime &&
+            this.levelSystem.getUnlockedItemTypes().includes('thwomp_event') &&
+            this.coinManager.getCoinCount() >= 3) {
+          this.thwompState = 'warning';
+          this.thwompPhaseStart = now;
+          this.renderer.showThwomp();
+          this.audio.playThwompWarning();
+          this.callbacks.onThwompWarning?.();
+        }
+        break;
+
+      case 'warning': {
+        const elapsed = now - this.thwompPhaseStart;
+        const progress = elapsed / C.THWOMP_WARNING_MS;
+        this.renderer.updateThwompAnimation('warning', progress);
+        if (progress >= 1) {
+          this.thwompState = 'slamming';
+          this.thwompPhaseStart = now;
+          this.audio.playThwompSlam();
+        }
+        break;
+      }
+
+      case 'slamming': {
+        const elapsed = now - this.thwompPhaseStart;
+        const progress = elapsed / C.THWOMP_SLAM_MS;
+        this.renderer.updateThwompAnimation('slam', progress);
+        if (progress >= 1) {
+          this._thwompImpact();
+          this.thwompState = 'stunned';
+          this.thwompPhaseStart = now;
+          this.callbacks.onThwompSlam?.();
+        }
+        break;
+      }
+
+      case 'stunned': {
+        const elapsed = now - this.thwompPhaseStart;
+        const progress = elapsed / C.THWOMP_STUNNED_MS;
+        this.renderer.updateThwompAnimation('stunned', progress);
+        if (progress >= 1) {
+          this.thwompState = 'rising';
+          this.thwompPhaseStart = now;
+          this.audio.playThwompRise();
+        }
+        break;
+      }
+
+      case 'rising': {
+        const elapsed = now - this.thwompPhaseStart;
+        const progress = elapsed / C.THWOMP_RISE_MS;
+        this.renderer.updateThwompAnimation('rise', progress);
+        if (progress >= 1) {
+          this.thwompState = 'idle';
+          this.renderer.hideThwomp();
+          this.thwompNextTime = now + this._randomThwompDelay();
+          this.callbacks.onThwompEnd?.();
+        }
+        break;
+      }
+    }
+  }
+
+  _thwompImpact() {
+    // Scatter coins outward from center of table
+    const coins = this.coinManager.getCoins();
+    for (const coin of coins) {
+      const cp = coin.body.position;
+      const dx = cp.x;
+      const dz = cp.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist < C.THWOMP_SLAM_RADIUS) {
+        coin.body.wakeUp();
+        const force = C.THWOMP_SLAM_FORCE * (1 - dist / C.THWOMP_SLAM_RADIUS);
+        const nx = dist > 0.01 ? dx / dist : (Math.random() - 0.5);
+        const nz = dist > 0.01 ? dz / dist : (Math.random() - 0.5);
+        coin.body.velocity.set(nx * force, force * 0.5, nz * force);
+      }
+    }
+
+    // Impact particles
+    this.renderer.emitParticles(
+      { x: 0, y: C.THWOMP_LAND_Y, z: 0 },
+      { count: 40, color: 0x888888, speed: 6 }
+    );
+    this.renderer.emitParticles(
+      { x: 0, y: C.THWOMP_LAND_Y + 0.5, z: 0 },
+      { count: 20, color: 0xffffff, speed: 4 }
+    );
+
+    this.haptic.chainTier(2); // strong haptic
+  }
+
+  _randomThwompDelay() {
+    const base = C.THWOMP_MIN_INTERVAL + Math.random() * (C.THWOMP_MAX_INTERVAL - C.THWOMP_MIN_INTERVAL);
     const scale = this.levelSystem.getDifficultyScale();
     return base / scale.eventFreq;
   }

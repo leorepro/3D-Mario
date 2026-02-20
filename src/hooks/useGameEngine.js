@@ -45,6 +45,7 @@ export function useGameEngine(containerRef) {
   const [canBoss, setCanBoss] = useState(false);
   const [lakituEvent, setLakituEvent] = useState(null);
   const [bulletBillEvent, setBulletBillEvent] = useState(null);
+  const [thwompEvent, setThwompEvent] = useState(null);
   const [coinSize, setCoinSizeState] = useState('small');
   const coinSizeRef = useRef('small');
 
@@ -123,6 +124,15 @@ export function useGameEngine(containerRef) {
       },
       onBulletBillEnd: () => {
         setTimeout(() => setBulletBillEvent(null), 1500);
+      },
+      onThwompWarning: () => {
+        setThwompEvent({ phase: 'warning' });
+      },
+      onThwompSlam: () => {
+        setThwompEvent({ phase: 'slam' });
+      },
+      onThwompEnd: () => {
+        setTimeout(() => setThwompEvent(null), 1500);
       },
     });
 
@@ -349,6 +359,7 @@ export function useGameEngine(containerRef) {
     canBoss,
     lakituEvent,
     bulletBillEvent,
+    thwompEvent,
     wheelVisible,
     setWheelVisible,
     handleWheelPrize,
