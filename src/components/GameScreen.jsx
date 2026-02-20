@@ -71,8 +71,8 @@ export function GameScreen() {
 
   const [rulesVisible, setRulesVisible] = useState(false);
 
-  // Total game height for the outer wrapper
-  const totalH = VIEWPORT_HEIGHT + 60;
+  // Total game height for the outer wrapper: HUD (~60) + canvas + ActionBar (~42) + 2px gap
+  const totalH = VIEWPORT_HEIGHT + 104;
 
   return (
     <div

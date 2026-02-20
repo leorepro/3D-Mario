@@ -4,7 +4,11 @@ export function HUD({ score, coinBalance, chain, multiplier, level, xpProgress }
       {/* Main HUD row */}
       <div className="flex justify-between items-center px-4 py-1.5">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{'\uD83E\uDE99'}</span>
+          <svg width="24" height="24" viewBox="0 0 24 24" className="shrink-0">
+            <ellipse cx="12" cy="12" rx="10" ry="11" fill="#FFD700" stroke="#B8860B" strokeWidth="1.5"/>
+            <ellipse cx="12" cy="12" rx="7" ry="9" fill="none" stroke="#DAA520" strokeWidth="1"/>
+            <text x="12" y="17" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#B8860B" fontFamily="Arial Black, sans-serif">M</text>
+          </svg>
           <span className="text-coin-gold font-bold text-lg">{coinBalance}</span>
         </div>
 
