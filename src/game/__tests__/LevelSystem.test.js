@@ -74,7 +74,7 @@ describe('LevelSystem', () => {
     bus.on('level:up', levelUpFn);
 
     // Jump from L1 to L5 (150 XP)
-    // Coin rewards: L2=10, L3=0, L4=15, L5=0
+    // Coin rewards: L2=15, L3=20, L4=25, L5=40
     ls.addXP(150);
     const data = levelUpFn.mock.calls[0][0];
     const expectedReward = (LEVEL_COIN_REWARDS[2] || 0) +

@@ -14,6 +14,11 @@ import {
   BOSS_RUSH_WAVES,
   BOSS_RUSH_WAVE_HP,
   BOSS_RUSH_WAVE_REWARD,
+  LAKITU_STEAL_MIN,
+  LAKITU_STEAL_MAX,
+  LAKITU_STEAL_RATIO,
+  FRENZY_CHANCE,
+  COIN_RECOVERY_INTERVAL_MS,
 } from '../constants.js';
 
 describe('getDifficultyScale', () => {
@@ -147,5 +152,83 @@ describe('Boss Rush constants', () => {
     for (let i = 1; i < BOSS_RUSH_WAVE_HP.length; i++) {
       expect(BOSS_RUSH_WAVE_HP[i]).toBeGreaterThan(BOSS_RUSH_WAVE_HP[i - 1]);
     }
+  });
+});
+
+describe('LEVEL_COIN_REWARDS distribution', () => {
+  it('every level L2-L50 should have a coin reward (no gaps)', () => {
+    for (let lv = 2; lv <= 50; lv++) {
+      expect(LEVEL_COIN_REWARDS[lv], `Level ${lv} missing coin reward`).toBeGreaterThan(0);
+    }
+  });
+
+  it('total coin rewards should be approximately 4000', () => {
+    const total = Object.values(LEVEL_COIN_REWARDS).reduce((a, b) => a + b, 0);
+    expect(total).toBeGreaterThanOrEqual(3800);
+    expect(total).toBeLessThanOrEqual(4200);
+  });
+
+  it('milestone levels (×5) should reward more than their neighbors', () => {
+    const milestones = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+    for (const lv of milestones) {
+      const prev = LEVEL_COIN_REWARDS[lv - 1];
+      if (prev) {
+        expect(LEVEL_COIN_REWARDS[lv], `L${lv} should reward more than L${lv - 1}`)
+          .toBeGreaterThan(prev);
+      }
+    }
+  });
+
+  it('LEVEL_COIN_REWARDS keys should match LEVEL_UNLOCKS coin_reward entries', () => {
+    for (const [lvStr, reward] of Object.entries(LEVEL_COIN_REWARDS)) {
+      const lv = Number(lvStr);
+      const unlocks = LEVEL_UNLOCKS[lv];
+      expect(unlocks, `Level ${lv} has coin reward but no LEVEL_UNLOCKS entry`).toBeDefined();
+      const hasCoinReward = unlocks.some(u => u.startsWith('coin_reward_'));
+      expect(hasCoinReward, `Level ${lv} LEVEL_UNLOCKS missing coin_reward_ entry`).toBe(true);
+    }
+  });
+});
+
+describe('Lakitu steal constants', () => {
+  it('STEAL_MIN should be less than STEAL_MAX', () => {
+    expect(LAKITU_STEAL_MIN).toBeLessThan(LAKITU_STEAL_MAX);
+  });
+
+  it('STEAL_MIN should be positive', () => {
+    expect(LAKITU_STEAL_MIN).toBeGreaterThan(0);
+  });
+
+  it('STEAL_RATIO should be between 0 and 1', () => {
+    expect(LAKITU_STEAL_RATIO).toBeGreaterThan(0);
+    expect(LAKITU_STEAL_RATIO).toBeLessThan(1);
+  });
+
+  it('STEAL_MAX should be reasonable (no more than 30)', () => {
+    expect(LAKITU_STEAL_MAX).toBeLessThanOrEqual(30);
+  });
+});
+
+describe('COIN_SIZES economy', () => {
+  it('large coin should have better ROI than small coin', () => {
+    const smallROI = COIN_SIZES.small.collectValue / COIN_SIZES.small.dropCost;
+    const largeROI = COIN_SIZES.large.collectValue / COIN_SIZES.large.dropCost;
+    expect(largeROI).toBeGreaterThan(smallROI);
+  });
+
+  it('large coin collectValue should return more than small', () => {
+    expect(COIN_SIZES.large.collectValue).toBeGreaterThan(COIN_SIZES.small.collectValue);
+  });
+});
+
+describe('Frenzy and Recovery tuning', () => {
+  it('FRENZY_CHANCE should be at most 2%', () => {
+    expect(FRENZY_CHANCE).toBeLessThanOrEqual(0.02);
+    expect(FRENZY_CHANCE).toBeGreaterThan(0);
+  });
+
+  it('COIN_RECOVERY_INTERVAL_MS should be at most 3 minutes', () => {
+    expect(COIN_RECOVERY_INTERVAL_MS).toBeLessThanOrEqual(180000);
+    expect(COIN_RECOVERY_INTERVAL_MS).toBeGreaterThan(0);
   });
 });
