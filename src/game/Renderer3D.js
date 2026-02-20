@@ -1341,6 +1341,13 @@ export class Renderer3D {
       this.bgRefs.sky.material.uniforms.bottomColor.value.set(sceneConfig.skyBottom);
     }
 
+    // Update background gradient plane
+    if (this.bgRefs.bgPlane) {
+      this.bgRefs.bgPlane.material.uniforms.topColor.value.set(sceneConfig.skyTop);
+      this.bgRefs.bgPlane.material.uniforms.midColor.value.set(sceneConfig.skyBottom);
+      this.bgRefs.bgPlane.material.uniforms.bottomColor.value.set(sceneConfig.background);
+    }
+
     // Update hill colors
     for (const hill of this.bgRefs.hills) {
       hill.material.color.set(sceneConfig.hillColor);
@@ -1358,6 +1365,378 @@ export class Renderer3D {
           child.material.color.set(sceneConfig.wallColor);
         }
       });
+    }
+
+    // Rebuild scene-specific decorations
+    this._clearSceneDecorations();
+    switch (sceneId) {
+      case 'starry_night': this._createStarryNightDecos(); break;
+      case 'lava_castle': this._createLavaCastleDecos(); break;
+      case 'rainbow_road': this._createRainbowRoadDecos(); break;
+      case 'space': this._createSpaceDecos(); break;
+    }
+  }
+
+  // ─── Scene decoration helpers ───
+  _clearSceneDecorations() {
+    for (const mesh of this.sceneDecoMeshes) {
+      this.scene.remove(mesh);
+    }
+    this.sceneDecoMeshes = [];
+    if (this.bgRefs) {
+      this.bgRefs.floaters = this.bgRefs.floaters.filter(f => !f._sceneDeco);
+      this.bgRefs.scrollables = this.bgRefs.scrollables.filter(s => !s._sceneDeco);
+    }
+  }
+
+  _addSceneDeco(mesh) {
+    this.scene.add(mesh);
+    this.sceneDecoMeshes.push(mesh);
+  }
+
+  _addSceneDecoFloater(mesh, opts) {
+    this.bgRefs.floaters.push({ mesh, ...opts, _sceneDeco: true });
+  }
+
+  _addSceneDecoScrollable(mesh, opts) {
+    this.bgRefs.scrollables.push({ mesh, ...opts, _sceneDeco: true });
+  }
+
+  // ─── Starry Night (L20): twinkling stars + crescent moon + shooting stars ───
+  _createStarryNightDecos() {
+    const starGeo = new THREE.OctahedronGeometry(0.15, 0);
+    const starColors = [0xffffff, 0xffd700, 0x87ceeb, 0xc8a2ff, 0xffd6e8];
+
+    // Scattered twinkling stars
+    for (let i = 0; i < 40; i++) {
+      const color = starColors[i % starColors.length];
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7 + Math.random() * 0.3 });
+      const mesh = new THREE.Mesh(starGeo, mat);
+      const x = (Math.random() - 0.5) * 60;
+      const y = 2 + Math.random() * 12;
+      const z = -15 - Math.random() * 8;
+      mesh.position.set(x, y, z);
+      mesh.scale.setScalar(0.3 + Math.random() * 0.8);
+      this._addSceneDeco(mesh);
+      this._addSceneDecoFloater(mesh, {
+        baseY: y,
+        amplitude: 0.05 + Math.random() * 0.08,
+        frequency: 2 + Math.random() * 2,
+        phase: Math.random() * 6.28,
+        rotSpeed: 1 + Math.random(),
+        twinkle: true,
+      });
+    }
+
+    // Crescent moon
+    const moonGroup = new THREE.Group();
+    const moonGeo = new THREE.CircleGeometry(1.8, 32);
+    const moonMat = new THREE.MeshBasicMaterial({ color: 0xfff8cc });
+    moonGroup.add(new THREE.Mesh(moonGeo, moonMat));
+    // Dark overlay to create crescent shape
+    const darkGeo = new THREE.CircleGeometry(1.5, 32);
+    const darkMat = new THREE.MeshBasicMaterial({ color: 0x0a0a2e });
+    const darkMesh = new THREE.Mesh(darkGeo, darkMat);
+    darkMesh.position.set(0.6, 0.4, 0.01);
+    moonGroup.add(darkMesh);
+    // Moon glow
+    const glowGeo = new THREE.CircleGeometry(2.5, 32);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xfff8cc, transparent: true, opacity: 0.15 });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.position.z = -0.01;
+    moonGroup.add(glow);
+    moonGroup.position.set(-8, 12, -20);
+    this._addSceneDeco(moonGroup);
+    this._addSceneDecoFloater(moonGroup, {
+      baseY: 12, amplitude: 0.15, frequency: 0.3, phase: 0, rotSpeed: 0,
+    });
+
+    // Shooting stars (fast scrollables)
+    for (let i = 0; i < 3; i++) {
+      const trailGroup = new THREE.Group();
+      const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      trailGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 4), headMat));
+      // Tail
+      const tailGeo = new THREE.PlaneGeometry(2.0, 0.06);
+      const tailMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 });
+      const tail = new THREE.Mesh(tailGeo, tailMat);
+      tail.position.x = 1.1;
+      trailGroup.add(tail);
+      trailGroup.rotation.z = -0.25;
+      const y = 8 + Math.random() * 5;
+      trailGroup.position.set(20 + i * 25, y, -18 - Math.random() * 4);
+      trailGroup.scale.setScalar(0.6 + Math.random() * 0.4);
+      this._addSceneDeco(trailGroup);
+      this._addSceneDecoScrollable(trailGroup, {
+        speed: 3 + Math.random() * 2, xMin: -55, xMax: 55, startX: trailGroup.position.x,
+      });
+    }
+  }
+
+  // ─── Lava Castle (L30): lava glow + fire embers + stalactites ───
+  _createLavaCastleDecos() {
+    // Lava glow at the bottom
+    const lavaGeo = new THREE.PlaneGeometry(70, 12);
+    const lavaMat = new THREE.ShaderMaterial({
+      uniforms: { time: { value: 0 }, color1: { value: new THREE.Color(0xff4500) }, color2: { value: new THREE.Color(0xff0000) } },
+      vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: `uniform float time; uniform vec3 color1; uniform vec3 color2; varying vec2 vUv;
+        void main(){
+          float wave = sin(vUv.x*8.0+time*0.8)*0.5+0.5;
+          float pulse = sin(time*1.5)*0.15+0.85;
+          vec3 col = mix(color1,color2,wave)*pulse;
+          float alpha = (1.0-vUv.y)*0.45;
+          gl_FragColor=vec4(col,alpha);
+        }`,
+      transparent: true, depthWrite: false, side: THREE.FrontSide,
+    });
+    const lava = new THREE.Mesh(lavaGeo, lavaMat);
+    lava.position.set(0, -4, -16);
+    lava.renderOrder = -1;
+    this._addSceneDeco(lava);
+    // Store ref for animation
+    lava.userData._lavaShader = true;
+    this._addSceneDecoFloater(lava, {
+      baseY: -4, amplitude: 0, frequency: 0, phase: 0, rotSpeed: 0,
+      _updateShader: true,
+    });
+
+    // Fire ember particles floating upward
+    const emberGeo = new THREE.SphereGeometry(0.08, 4, 4);
+    const emberColors = [0xff4500, 0xff6600, 0xffaa00, 0xff2200, 0xffcc00];
+    for (let i = 0; i < 25; i++) {
+      const color = emberColors[i % emberColors.length];
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 + Math.random() * 0.4 });
+      const mesh = new THREE.Mesh(emberGeo, mat);
+      const x = (Math.random() - 0.5) * 50;
+      const y = -3 + Math.random() * 16;
+      const z = -10 - Math.random() * 10;
+      mesh.position.set(x, y, z);
+      mesh.scale.setScalar(0.5 + Math.random() * 1.5);
+      this._addSceneDeco(mesh);
+      this._addSceneDecoFloater(mesh, {
+        baseY: y,
+        amplitude: 0.8 + Math.random() * 0.5,
+        frequency: 0.4 + Math.random() * 0.4,
+        phase: Math.random() * 6.28,
+        rotSpeed: 0,
+        twinkle: true,
+      });
+    }
+
+    // Stalactites hanging from top
+    const stalGeo = new THREE.ConeGeometry(0.3, 2, 6);
+    const stalMat = new THREE.MeshStandardMaterial({ color: 0x3a2a2a, roughness: 0.9, metalness: 0.1 });
+    for (let i = 0; i < 10; i++) {
+      const mesh = new THREE.Mesh(stalGeo, stalMat);
+      const x = (Math.random() - 0.5) * 50;
+      mesh.position.set(x, 14 + Math.random() * 2, -16 - Math.random() * 5);
+      mesh.rotation.x = Math.PI; // point downward
+      mesh.scale.set(0.6 + Math.random() * 0.8, 0.5 + Math.random() * 1.5, 0.6 + Math.random() * 0.8);
+      this._addSceneDeco(mesh);
+      this._addSceneDecoScrollable(mesh, {
+        speed: 0.08 + Math.random() * 0.08, xMin: -45, xMax: 45, startX: x,
+      });
+    }
+
+    // Lava bubbles (bright glowing spheres at bottom)
+    const bubbleGeo = new THREE.SphereGeometry(0.2, 8, 6);
+    for (let i = 0; i < 8; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xffaa00, transparent: true, opacity: 0.6,
+      });
+      const mesh = new THREE.Mesh(bubbleGeo, mat);
+      const x = (Math.random() - 0.5) * 40;
+      const y = -5 + Math.random() * 2;
+      mesh.position.set(x, y, -14 - Math.random() * 4);
+      mesh.scale.setScalar(0.5 + Math.random() * 1.0);
+      this._addSceneDeco(mesh);
+      this._addSceneDecoFloater(mesh, {
+        baseY: y,
+        amplitude: 1.5 + Math.random(),
+        frequency: 0.3 + Math.random() * 0.3,
+        phase: Math.random() * 6.28,
+        rotSpeed: 0,
+        twinkle: true,
+      });
+    }
+  }
+
+  // ─── Rainbow Road (L40): rainbow stripes + colorful stars + sparkle trail ───
+  _createRainbowRoadDecos() {
+    const rainbowColors = [0xe52521, 0xff8c00, 0xfbd000, 0x43b047, 0x049cd8, 0x6b3fa0];
+
+    // Rainbow arcs across the sky
+    const arcGroup = new THREE.Group();
+    for (let i = 0; i < rainbowColors.length; i++) {
+      const arcGeo = new THREE.TorusGeometry(10 - i * 0.6, 0.25, 8, 48, Math.PI);
+      const arcMat = new THREE.MeshBasicMaterial({
+        color: rainbowColors[i], transparent: true, opacity: 0.45,
+      });
+      arcGroup.add(new THREE.Mesh(arcGeo, arcMat));
+    }
+    arcGroup.position.set(0, 2, -22);
+    arcGroup.scale.set(1.2, 0.8, 1);
+    this._addSceneDeco(arcGroup);
+
+    // Second rainbow (smaller, offset)
+    const arc2 = new THREE.Group();
+    for (let i = 0; i < rainbowColors.length; i++) {
+      const arcGeo = new THREE.TorusGeometry(6 - i * 0.4, 0.18, 8, 32, Math.PI);
+      const arcMat = new THREE.MeshBasicMaterial({
+        color: rainbowColors[i], transparent: true, opacity: 0.3,
+      });
+      arc2.add(new THREE.Mesh(arcGeo, arcMat));
+    }
+    arc2.position.set(20, 5, -20);
+    arc2.scale.set(0.8, 0.6, 1);
+    this._addSceneDeco(arc2);
+    this._addSceneDecoScrollable(arc2, {
+      speed: 0.15, xMin: -50, xMax: 55, startX: 20,
+    });
+
+    // Colorful floating stars
+    const starGeo = new THREE.OctahedronGeometry(0.25, 0);
+    for (let i = 0; i < 30; i++) {
+      const color = rainbowColors[i % rainbowColors.length];
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.75 + Math.random() * 0.25 });
+      const mesh = new THREE.Mesh(starGeo, mat);
+      const x = (Math.random() - 0.5) * 55;
+      const y = -2 + Math.random() * 15;
+      const z = -12 - Math.random() * 10;
+      mesh.position.set(x, y, z);
+      mesh.scale.setScalar(0.3 + Math.random() * 0.7);
+      this._addSceneDeco(mesh);
+      this._addSceneDecoFloater(mesh, {
+        baseY: y,
+        amplitude: 0.2 + Math.random() * 0.2,
+        frequency: 1.0 + Math.random(),
+        phase: Math.random() * 6.28,
+        rotSpeed: 2 + Math.random() * 2,
+        twinkle: true,
+      });
+    }
+
+    // Neon trail particles (fast scrolling sparkles)
+    const sparkGeo = new THREE.SphereGeometry(0.06, 4, 4);
+    for (let i = 0; i < 15; i++) {
+      const color = rainbowColors[i % rainbowColors.length];
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7 });
+      const mesh = new THREE.Mesh(sparkGeo, mat);
+      const x = (Math.random() - 0.5) * 60;
+      const y = 1 + Math.random() * 10;
+      mesh.position.set(x, y, -15 - Math.random() * 5);
+      mesh.scale.setScalar(0.5 + Math.random());
+      this._addSceneDeco(mesh);
+      this._addSceneDecoScrollable(mesh, {
+        speed: 1.0 + Math.random() * 1.5, xMin: -55, xMax: 55, startX: x,
+      });
+    }
+  }
+
+  // ─── Space (L50): distant stars + earth + asteroids + nebula glow ───
+  _createSpaceDecos() {
+    // Dense starfield
+    const starGeo = new THREE.OctahedronGeometry(0.06, 0);
+    const starColors = [0xffffff, 0xaaccff, 0xffddaa, 0xddddff];
+    for (let i = 0; i < 60; i++) {
+      const color = starColors[i % starColors.length];
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 + Math.random() * 0.5 });
+      const mesh = new THREE.Mesh(starGeo, mat);
+      const x = (Math.random() - 0.5) * 70;
+      const y = -5 + Math.random() * 20;
+      const z = -14 - Math.random() * 10;
+      mesh.position.set(x, y, z);
+      mesh.scale.setScalar(0.3 + Math.random() * 1.2);
+      this._addSceneDeco(mesh);
+      this._addSceneDecoFloater(mesh, {
+        baseY: y,
+        amplitude: 0.03 + Math.random() * 0.05,
+        frequency: 2 + Math.random() * 3,
+        phase: Math.random() * 6.28,
+        rotSpeed: 0.5 + Math.random(),
+        twinkle: true,
+      });
+    }
+
+    // Earth
+    const earthGroup = new THREE.Group();
+    const earthGeo = new THREE.SphereGeometry(2.5, 24, 16);
+    const earthMat = new THREE.MeshStandardMaterial({
+      color: 0x2244aa, metalness: 0.1, roughness: 0.8,
+    });
+    const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+    earthGroup.add(earthMesh);
+    // Continents (green patches)
+    const landGeo = new THREE.SphereGeometry(2.52, 16, 12);
+    const landMat = new THREE.MeshStandardMaterial({
+      color: 0x33aa44, metalness: 0.1, roughness: 0.9,
+      transparent: true, opacity: 0.6,
+    });
+    const land = new THREE.Mesh(landGeo, landMat);
+    land.scale.set(0.6, 0.8, 0.6);
+    land.rotation.set(0.3, 0.5, 0);
+    earthGroup.add(land);
+    // Atmosphere glow
+    const atmosGeo = new THREE.SphereGeometry(2.8, 24, 16);
+    const atmosMat = new THREE.MeshBasicMaterial({
+      color: 0x4488ff, transparent: true, opacity: 0.12, side: THREE.BackSide,
+    });
+    earthGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
+    // Clouds on earth
+    const eCloudGeo = new THREE.SphereGeometry(2.55, 16, 12);
+    const eCloudMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.25,
+    });
+    const eCloud = new THREE.Mesh(eCloudGeo, eCloudMat);
+    eCloud.rotation.set(0.8, 1.2, 0);
+    earthGroup.add(eCloud);
+
+    earthGroup.position.set(10, 10, -22);
+    this._addSceneDeco(earthGroup);
+    this._addSceneDecoFloater(earthGroup, {
+      baseY: 10, amplitude: 0.2, frequency: 0.15, phase: 0, rotSpeed: 0.05,
+    });
+
+    // Asteroids
+    const rockGeo = new THREE.DodecahedronGeometry(0.4, 0);
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9, metalness: 0.2 });
+    for (let i = 0; i < 12; i++) {
+      const mesh = new THREE.Mesh(rockGeo, rockMat);
+      const x = (Math.random() - 0.5) * 55;
+      const y = -2 + Math.random() * 16;
+      const z = -13 - Math.random() * 8;
+      mesh.position.set(x, y, z);
+      mesh.scale.set(
+        0.4 + Math.random() * 1.0,
+        0.3 + Math.random() * 0.8,
+        0.4 + Math.random() * 1.0,
+      );
+      mesh.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      this._addSceneDeco(mesh);
+      this._addSceneDecoFloater(mesh, {
+        baseY: y,
+        amplitude: 0.1 + Math.random() * 0.15,
+        frequency: 0.3 + Math.random() * 0.3,
+        phase: Math.random() * 6.28,
+        rotSpeed: 0.3 + Math.random() * 0.5,
+      });
+    }
+
+    // Nebula glow (soft colored spheres in background)
+    const nebulaColors = [0x4400aa, 0x0044aa, 0x880044, 0x004488];
+    for (let i = 0; i < 4; i++) {
+      const geo = new THREE.SphereGeometry(4 + Math.random() * 3, 12, 8);
+      const mat = new THREE.MeshBasicMaterial({
+        color: nebulaColors[i], transparent: true, opacity: 0.06 + Math.random() * 0.04,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(
+        (Math.random() - 0.5) * 40,
+        Math.random() * 12,
+        -20 - Math.random() * 5,
+      );
+      this._addSceneDeco(mesh);
     }
   }
 
@@ -1939,6 +2318,15 @@ export class Renderer3D {
       this.bgRefs.bgPlane.material.uniforms.time.value = this._time;
     }
 
+    // Animate scene-specific shaders (lava etc.)
+    if (doBgAnim) {
+      for (const mesh of this.sceneDecoMeshes) {
+        if (mesh.userData._lavaShader && mesh.material.uniforms) {
+          mesh.material.uniforms.time.value = this._time;
+        }
+      }
+    }
+
     // Animate tray edge glow (pulse)
     if (doBgAnim && this.trayEdgeGlow) {
       this.trayEdgeGlow.material.opacity = 0.5 + 0.3 * Math.sin(this._time * 3);
@@ -2134,6 +2522,9 @@ export class Renderer3D {
     this.hideLakitu();
     this.hideBulletBill();
     this.hideThwomp();
+
+    // Dispose scene decorations
+    this._clearSceneDecorations();
 
     this.smallCoinGeometry.dispose();
     this.largeCoinGeometry.dispose();
