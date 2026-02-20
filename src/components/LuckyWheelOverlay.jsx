@@ -68,7 +68,8 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
 
     const prize = wheel.spin();
     const sliceAngle = 360 / prize.totalSlots;
-    const targetAngle = 360 * 5 + (360 - prize.slotIndex * sliceAngle - sliceAngle / 2);
+    // -90 offset: pointer is on the right (3 o'clock) instead of top (12 o'clock)
+    const targetAngle = 360 * 5 + (270 - prize.slotIndex * sliceAngle - sliceAngle / 2);
 
     // Use requestAnimationFrame to ensure the reset position renders first
     requestAnimationFrame(() => {
@@ -97,10 +98,12 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
 
         {/* Wheel */}
         <div className="relative w-[240px] h-[240px] mx-auto mb-3">
-          {/* Arrow/pointer */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10
-                          w-0 h-0 border-l-[10px] border-r-[10px] border-t-[20px]
-                          border-l-transparent border-r-transparent border-t-mario-red" />
+          {/* Arrow/pointer — right side, pointing left */}
+          <div className="absolute right-0 top-1/2 translate-x-1 -translate-y-1/2 z-10"
+               style={{ filter: 'drop-shadow(0 0 6px rgba(255,0,0,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}>
+            <div className="w-0 h-0 border-t-[14px] border-b-[14px] border-r-[28px]
+                            border-t-transparent border-b-transparent border-r-mario-red" />
+          </div>
 
           {/* Spinning wheel */}
           <div
