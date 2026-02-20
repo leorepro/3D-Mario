@@ -58,3 +58,10 @@ A Mario-themed 3D coin pusher web game. Mobile-first, portrait orientation. Play
 - `npm run dev` — Start dev server (port 3000)
 - `npm run build` — Production build
 - `npm run preview` — Preview production build
+- `npm test` — Run all tests (vitest)
+
+## Workflow
+
+- **Always run `npm test` before and after making changes** to ensure nothing is broken.
+- Tests are in `src/game/__tests__/` covering core game logic modules.
+- When adding new game logic, add corresponding tests.
