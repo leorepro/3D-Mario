@@ -417,6 +417,7 @@ export class Renderer3D {
     // Store original dimensions for scaling reference
     group.userData.baseWidth = width;
     group.userData.baseDepth = depth;
+    group.userData.baseHeight = height;
 
     this.scene.add(group);
     return group;
@@ -1752,6 +1753,12 @@ export class Renderer3D {
     const baseDepth = this.pusherMesh.userData.baseDepth || C.PUSHER_DEPTH;
     const scale = newDepth / baseDepth;
     this.pusherMesh.scale.z = scale;
+  }
+
+  setPusherHeight(newHeight) {
+    const baseHeight = this.pusherMesh.userData.baseHeight || C.PUSHER_HEIGHT;
+    const scale = newHeight / baseHeight;
+    this.pusherMesh.scale.y = scale;
   }
 
   // ─── Second Pusher (Dual Pusher L35) ───

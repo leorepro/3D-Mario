@@ -18,6 +18,8 @@ export class PusherController3D {
     this.defaultWidth = width;
     this.currentDepth = depth;
     this.defaultDepth = depth;
+    this.currentHeight = height;
+    this.defaultHeight = height;
     this.defaultSpeed = speed;
     this.heightVal = height;
     this.depthVal = depth;
@@ -86,6 +88,12 @@ export class PusherController3D {
     this._rebuildShape();
   }
 
+  setHeight(newHeight) {
+    this.currentHeight = newHeight;
+    this.heightVal = newHeight;
+    this._rebuildShape();
+  }
+
   _rebuildShape() {
     while (this.body.shapes.length > 0) {
       this.body.removeShape(this.body.shapes[0]);
@@ -108,6 +116,10 @@ export class PusherController3D {
 
   resetDepth() {
     this.setDepth(this.defaultDepth);
+  }
+
+  resetHeight() {
+    this.setHeight(this.defaultHeight);
   }
 
   resetSpeed() {

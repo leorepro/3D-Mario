@@ -356,6 +356,14 @@ export class GameEngine {
           this.audio.playBossHit();
           this.renderer.flashBossDamage();
         }
+      } else if (pos.z < C.BARRIER_Z - 0.5) {
+        // Item is behind the barrier — remove so it doesn't pile up
+        this.itemManager.removeItem(item);
+        if (this.bossSystem.isActive()) {
+          this.bossSystem.onObjectLostBack(item.type);
+          this.audio.playBossHit();
+          this.renderer.flashBossDamage();
+        }
       }
     }
   }
@@ -410,52 +418,64 @@ export class GameEngine {
       }
 
       case 'wider_pusher': {
-        // Mushroom — wider & thicker pusher
+        // Mushroom — wider, deeper & taller pusher
         const widthMult = def.effect.widthMultiplier || 1.5;
         const depthMult = def.effect.depthMultiplier || 1.5;
+        const heightMult = 2;  // 厚度加倍
         const dur = def.effect.duration || 12000;
         const newWidth = C.PUSHER_WIDTH * widthMult;
         const newDepth = C.PUSHER_DEPTH * depthMult;
+        const newHeight = C.PUSHER_HEIGHT * heightMult;
         this.effectManager.addEffect({
           type: 'wider_pusher',
           duration: dur,
           apply: (engine) => {
             engine.pusher.setWidth(newWidth);
             engine.pusher.setDepth(newDepth);
+            engine.pusher.setHeight(newHeight);
             engine.renderer.setPusherWidth(newWidth);
             engine.renderer.setPusherDepth(newDepth);
+            engine.renderer.setPusherHeight(newHeight);
           },
           remove: (engine) => {
             engine.pusher.resetWidth();
             engine.pusher.resetDepth();
+            engine.pusher.resetHeight();
             engine.renderer.setPusherWidth(C.PUSHER_WIDTH);
             engine.renderer.setPusherDepth(C.PUSHER_DEPTH);
+            engine.renderer.setPusherHeight(C.PUSHER_HEIGHT);
           },
         }, this);
         break;
       }
 
       case 'narrower_pusher': {
-        // Poison Mushroom — narrower & thinner pusher
+        // Poison Mushroom — narrower, shallower & thinner pusher
         const widthMult = def.effect.widthMultiplier || 0.6;
         const depthMult = def.effect.depthMultiplier || 0.6;
+        const heightMult = 0.6;  // 厚度也縮小
         const dur = def.effect.duration || 8000;
         const newWidth = C.PUSHER_WIDTH * widthMult;
         const newDepth = C.PUSHER_DEPTH * depthMult;
+        const newHeight = C.PUSHER_HEIGHT * heightMult;
         this.effectManager.addEffect({
           type: 'wider_pusher', // same type so they don't stack
           duration: dur,
           apply: (engine) => {
             engine.pusher.setWidth(newWidth);
             engine.pusher.setDepth(newDepth);
+            engine.pusher.setHeight(newHeight);
             engine.renderer.setPusherWidth(newWidth);
             engine.renderer.setPusherDepth(newDepth);
+            engine.renderer.setPusherHeight(newHeight);
           },
           remove: (engine) => {
             engine.pusher.resetWidth();
             engine.pusher.resetDepth();
+            engine.pusher.resetHeight();
             engine.renderer.setPusherWidth(C.PUSHER_WIDTH);
             engine.renderer.setPusherDepth(C.PUSHER_DEPTH);
+            engine.renderer.setPusherHeight(C.PUSHER_HEIGHT);
           },
         }, this);
         break;
