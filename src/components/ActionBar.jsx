@@ -14,7 +14,7 @@ export function ActionBar({
   const canDrop = coinBalance >= dropCost;
 
   return (
-    <div className="flex justify-center items-center gap-1.5 px-2 py-2.5 bg-black/80"
+    <div className="flex justify-center items-center gap-1.5 px-2 py-1.5 bg-black/70 rounded-t-xl"
          style={{ width: 390 }}>
 
       {/* Coin size toggle button */}
