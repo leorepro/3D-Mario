@@ -1747,6 +1747,25 @@ export class Renderer3D {
     this.pusherMesh.scale.x = scale;
   }
 
+  // ─── Second Pusher (Dual Pusher L35) ───
+  createSecondPusherMesh(width, height, depth) {
+    if (this.secondPusherMesh) return;
+    // Re-use the pusher mesh creation but with a different color
+    const geo = new THREE.BoxGeometry(width, height, depth);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x6b3a1a,
+      metalness: C.MATERIAL_CONFIG.pusher.metalness,
+      roughness: C.MATERIAL_CONFIG.pusher.roughness,
+      emissive: 0x331a00,
+      emissiveIntensity: 0.1,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+    this.secondPusherMesh = mesh;
+  }
+
   // ─── Boss Bowser mesh ───
   showBoss() {
     if (this.bossMesh) return;
@@ -2274,6 +2293,12 @@ export class Renderer3D {
     if (gameState.pusherBody) {
       this.pusherMesh.position.copy(gameState.pusherBody.position);
       this.pusherMesh.quaternion.copy(gameState.pusherBody.quaternion);
+    }
+
+    // Sync second pusher
+    if (this.secondPusherMesh && gameState.secondPusherBody) {
+      this.secondPusherMesh.position.copy(gameState.secondPusherBody.position);
+      this.secondPusherMesh.quaternion.copy(gameState.secondPusherBody.quaternion);
     }
 
     // Sync coins

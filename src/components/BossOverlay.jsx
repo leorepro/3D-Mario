@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export function BossOverlay({ bossActive, bossHP, bossMaxHP, onAbort }) {
+export function BossOverlay({ bossActive, bossHP, bossMaxHP, onAbort, bossRushWave }) {
   const [flash, setFlash] = useState(false);
   const [prevHP, setPrevHP] = useState(bossHP);
 
@@ -25,7 +25,9 @@ export function BossOverlay({ bossActive, bossHP, bossMaxHP, onAbort }) {
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1">
             <span className="text-base">🐢</span>
-            <span className="text-white font-bold text-xs">庫巴 BOSS</span>
+            <span className="text-white font-bold text-xs">
+              庫巴 BOSS{bossRushWave ? ` (${bossRushWave.wave}/${bossRushWave.totalWaves})` : ''}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-white text-xs font-mono">

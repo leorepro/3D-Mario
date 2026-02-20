@@ -129,6 +129,14 @@ export class PhysicsWorld3D {
     this.world.step(C.PHYSICS_TIMESTEP, dt, C.PHYSICS_MAX_SUBSTEPS);
   }
 
+  setGravity(y) {
+    this.world.gravity.set(C.GRAVITY.x, y, C.GRAVITY.z);
+  }
+
+  resetGravity() {
+    this.world.gravity.set(C.GRAVITY.x, C.GRAVITY.y, C.GRAVITY.z);
+  }
+
   addBody(body) {
     this.world.addBody(body);
   }

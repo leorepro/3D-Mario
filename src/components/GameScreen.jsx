@@ -19,6 +19,7 @@ import { WalkingCharacters } from './WalkingCharacters.jsx';
 import { LakituPopup } from './LakituPopup.jsx';
 import { BulletBillPopup } from './BulletBillPopup.jsx';
 import { ThwompPopup } from './ThwompPopup.jsx';
+import { LowGravityPopup } from './LowGravityPopup.jsx';
 
 /** Calculate scale factor to fit the game within the device screen */
 function useResponsiveScale() {
@@ -55,7 +56,9 @@ export function GameScreen() {
     level, xpProgress,
     itemEvent, levelEvent, achievementEvent,
     frenzyActive, frenzyEndTime,
-    bossActive, bossHP, bossMaxHP, startBoss, abortBoss, canBoss, lakituEvent, bulletBillEvent, thwompEvent,
+    bossActive, bossHP, bossMaxHP, startBoss, abortBoss, canBoss,
+    lakituEvent, bulletBillEvent, thwompEvent, lowGravityActive,
+    bossRushWave, canBossRush, startBossRush,
     wheelVisible, setWheelVisible, handleWheelPrize,
     dailyReward, setDailyReward,
     settingsVisible, setSettingsVisible,
@@ -115,12 +118,14 @@ export function GameScreen() {
           <LakituPopup lakituEvent={lakituEvent} />
           <BulletBillPopup bulletBillEvent={bulletBillEvent} />
           <ThwompPopup thwompEvent={thwompEvent} />
+          <LowGravityPopup active={lowGravityActive} />
           <FrenzyOverlay frenzyActive={frenzyActive} frenzyEndTime={frenzyEndTime} />
           <BossOverlay
             bossActive={bossActive}
             bossHP={bossHP}
             bossMaxHP={bossMaxHP}
             onAbort={abortBoss}
+            bossRushWave={bossRushWave}
           />
         </div>
 
@@ -136,6 +141,8 @@ export function GameScreen() {
           canBoss={canBoss}
           onStartBoss={startBoss}
           bossActive={bossActive}
+          canBossRush={canBossRush}
+          onStartBossRush={startBossRush}
           score={score}
           level={level}
           coinSize={coinSize}

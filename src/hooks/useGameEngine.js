@@ -46,6 +46,9 @@ export function useGameEngine(containerRef) {
   const [lakituEvent, setLakituEvent] = useState(null);
   const [bulletBillEvent, setBulletBillEvent] = useState(null);
   const [thwompEvent, setThwompEvent] = useState(null);
+  const [lowGravityActive, setLowGravityActive] = useState(false);
+  const [bossRushWave, setBossRushWave] = useState(null); // { wave, totalWaves } or null
+  const [canBossRush, setCanBossRush] = useState(false);
   const [coinSize, setCoinSizeState] = useState('small');
   const coinSizeRef = useRef('small');
 
@@ -90,10 +93,13 @@ export function useGameEngine(containerRef) {
       onFrenzyEnd: () => {
         setFrenzyActive(false);
       },
-      onBossStart: ({ hp, maxHp }) => {
+      onBossStart: ({ hp, maxHp, wave, totalWaves }) => {
         setBossActive(true);
         setBossHP(hp);
         setBossMaxHP(maxHp);
+        if (wave != null) {
+          setBossRushWave({ wave, totalWaves });
+        }
       },
       onBossEnd: () => {
         setBossActive(false);
@@ -134,6 +140,16 @@ export function useGameEngine(containerRef) {
       onThwompEnd: () => {
         setTimeout(() => setThwompEvent(null), 1500);
       },
+      onLowGravityStart: () => {
+        setLowGravityActive(true);
+      },
+      onLowGravityEnd: () => {
+        setLowGravityActive(false);
+      },
+      onBossRushComplete: (data) => {
+        setBossRushWave(null);
+        setCoinBalance(prev => prev + data.totalReward);
+      },
     });
 
     engineRef.current = engine;
@@ -157,9 +173,18 @@ export function useGameEngine(containerRef) {
       // Update pusher speed for new difficulty level
       const scale = engine.levelSystem.getDifficultyScale();
       engine.pusher.setSpeed(C.PUSHER_SPEED * scale.pusherSpeed);
+      // Update second pusher speed if it exists
+      if (engine.secondPusher) {
+        engine.secondPusher.setSpeed(C.PUSHER_SPEED * C.DUAL_PUSHER_SPEED_MULT * scale.pusherSpeed);
+      }
+      // Create dual pusher on reaching L35
+      if (data.newLevel >= 35 && !engine.secondPusher) {
+        engine._createSecondPusher();
+      }
       // Update unlocked scenes
       setUnlockedScenes(engine.levelSystem.getUnlockedScenes());
       setCanBoss(engine.levelSystem.canBoss());
+      setCanBossRush(engine.levelSystem.canBossRush());
     });
 
     bus.on('xp:gained', (data) => {
@@ -178,12 +203,15 @@ export function useGameEngine(containerRef) {
     });
 
     bus.on('boss:defeated', (data) => {
-      setBossActive(false);
-      setBossHP(0);
-      engine.renderer.hideBoss();
       engine.audio.playBossDefeated();
       setCoinBalance(prev => prev + data.reward);
-      setCanBoss(false);
+      // During boss rush, GameEngine handles wave progression
+      if (!engine.bossRushActive) {
+        setBossActive(false);
+        setBossHP(0);
+        engine.renderer.hideBoss();
+        setCanBoss(false);
+      }
     });
 
     // Initialize state from save
@@ -192,6 +220,7 @@ export function useGameEngine(containerRef) {
     setXpProgress(engine.levelSystem.getXPProgress());
     setUnlockedScenes(engine.levelSystem.getUnlockedScenes());
     setCanBoss(engine.levelSystem.canBoss());
+    setCanBossRush(engine.levelSystem.canBossRush());
     setCurrentScene(engine.saveManager.getCurrentScene());
     setSettings(engine.saveManager.getSettings());
     setLeaderboard(engine.saveManager.getLeaderboard());
@@ -305,6 +334,11 @@ export function useGameEngine(containerRef) {
     engineRef.current?.abortBoss();
     setBossActive(false);
     setBossHP(0);
+    setBossRushWave(null);
+  }, []);
+
+  const startBossRush = useCallback(() => {
+    engineRef.current?.startBossRush();
   }, []);
 
   const handleWheelPrize = useCallback((prize) => {
@@ -360,6 +394,10 @@ export function useGameEngine(containerRef) {
     lakituEvent,
     bulletBillEvent,
     thwompEvent,
+    lowGravityActive,
+    bossRushWave,
+    canBossRush,
+    startBossRush,
     wheelVisible,
     setWheelVisible,
     handleWheelPrize,

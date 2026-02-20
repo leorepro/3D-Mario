@@ -384,6 +384,24 @@ export const THWOMP_SIZE = { w: 1.6, h: 1.8, d: 1.2 }; // width, height, depth
 export const THWOMP_START_Y = 12;         // high above table
 export const THWOMP_LAND_Y = 1.2;        // landing height on table
 
+// ── Low Gravity Mode (L32) ──
+export const LOW_GRAVITY_MIN_INTERVAL = 60000;   // min 60s between events
+export const LOW_GRAVITY_MAX_INTERVAL = 180000;  // max 3 min
+export const LOW_GRAVITY_DURATION = 12000;        // 12 seconds active
+export const LOW_GRAVITY_FACTOR = 0.35;           // 35% of normal gravity
+
+// ── Dual Pusher (L35) ──
+export const DUAL_PUSHER_Z_MIN = -1.0;            // second pusher Z range (closer to front)
+export const DUAL_PUSHER_Z_MAX = 3.5;
+export const DUAL_PUSHER_SPEED_MULT = 0.8;        // slightly slower than main
+
+// ── Boss Rush (L38) ──
+export const BOSS_RUSH_WAVES = 3;
+export const BOSS_RUSH_WAVE_HP = [80, 120, 180];
+export const BOSS_RUSH_WAVE_ATTACK_INTERVAL = [5000, 4000, 3000];
+export const BOSS_RUSH_WAVE_REWARD = [80, 150, 300];
+export const BOSS_RUSH_BREAK_MS = 3000;            // 3s pause between waves
+
 // ── Material Colors ──
 export const MATERIAL_CONFIG = {
   coin: { color: 0xffc107, metalness: 0.8, roughness: 0.2 },

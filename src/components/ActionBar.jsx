@@ -6,6 +6,7 @@ export function ActionBar({
   audioEnabled, onToggleAudio,
   onOpenSettings, onOpenLeaderboard,
   canBoss, onStartBoss, bossActive,
+  canBossRush, onStartBossRush,
   score, level,
   coinSize = 'small', onToggleCoinSize,
 }) {
@@ -68,6 +69,19 @@ export function ActionBar({
           title="挑戰庫巴！"
         >
           {'\uD83D\uDC22'}
+        </button>
+      )}
+
+      {/* Boss Rush button (L38+) */}
+      {canBossRush && !bossActive && (
+        <button
+          onClick={onStartBossRush}
+          className="px-2 py-2 rounded-xl text-sm cursor-pointer
+                     active:scale-95 transition-transform bg-purple-800 hover:bg-purple-700
+                     text-white font-bold"
+          title="魔王連戰！"
+        >
+          {'\uD83D\uDC22\u00D73'}
         </button>
       )}
 

@@ -357,6 +357,22 @@ export class AudioManager {
     setTimeout(() => this._playTone(1760, 0.2, 'sine', 0.12), 180);
   }
 
+  /** Low gravity mode activated — dreamy ascending */
+  playLowGravityStart() {
+    [330, 440, 550, 660, 880].forEach((f, i) => {
+      setTimeout(() => this._playTone(f, 0.2, 'sine', 0.15), i * 70);
+    });
+    this._playNoise(0.3, 0.05);
+  }
+
+  /** Boss rush wave start — ominous horn */
+  playBossRushWave() {
+    this._playTone(200, 0.3, 'sawtooth', 0.25);
+    setTimeout(() => this._playTone(250, 0.3, 'sawtooth', 0.22), 150);
+    setTimeout(() => this._playTone(300, 0.4, 'sawtooth', 0.2), 300);
+    this._playNoise(0.2, 0.08);
+  }
+
   setVolume(v) {
     if (this.masterGain) {
       this.masterGain.gain.value = Math.max(0, Math.min(1, v));

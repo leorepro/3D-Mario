@@ -108,6 +108,23 @@ export class GameEngine {
     this.thwompNextTime = Date.now() + this._randomThwompDelay();
     this.thwompPhaseStart = 0;
 
+    // Low gravity state (L32)
+    this.lowGravityNextTime = Date.now() + this._randomLowGravityDelay();
+
+    // Dual pusher state (L35)
+    this.secondPusher = null;
+
+    // Boss Rush state (L38)
+    this.bossRushActive = false;
+    this.bossRushWave = 0;
+
+    // Listen for boss:defeated to handle boss rush wave progression
+    this.eventBus.on('boss:defeated', () => {
+      if (this.bossRushActive) {
+        this._onBossRushWaveDefeated();
+      }
+    });
+
     // Restore scene from save
     const savedScene = this.saveManager.getCurrentScene();
     if (savedScene && savedScene !== 'overworld') {
@@ -132,6 +149,11 @@ export class GameEngine {
     // Apply difficulty scaling for current level
     const scale = this.levelSystem.getDifficultyScale();
     this.pusher.setSpeed(C.PUSHER_SPEED * scale.pusherSpeed);
+
+    // Create second pusher if dual_pusher unlocked (L35+)
+    if (this.levelSystem.getUnlockedItemTypes().includes('dual_pusher') && !this.secondPusher) {
+      this._createSecondPusher();
+    }
 
     this.loop();
   }
@@ -162,8 +184,9 @@ export class GameEngine {
       av.z *= 0.1;
     }
 
-    // Update pusher
+    // Update pushers
     this.pusher.update();
+    if (this.secondPusher) this.secondPusher.update();
 
     // Update effects (auto-expire)
     this.effectManager.update(this);
@@ -192,6 +215,9 @@ export class GameEngine {
     // Update Thwomp event
     this.updateThwomp();
 
+    // Update low gravity event
+    this.updateLowGravity();
+
     // Update boss
     if (this.bossSystem.isActive()) {
       this.bossSystem.update();
@@ -203,6 +229,7 @@ export class GameEngine {
     // Render
     this.renderer.render({
       pusherBody: this.pusher.getBody(),
+      secondPusherBody: this.secondPusher?.getBody() ?? null,
       coins: this.coinManager.getCoins(),
       items: this.itemManager.getItems(),
       dropX: this.dropX,
@@ -845,6 +872,115 @@ export class GameEngine {
     const base = C.THWOMP_MIN_INTERVAL + Math.random() * (C.THWOMP_MAX_INTERVAL - C.THWOMP_MIN_INTERVAL);
     const scale = this.levelSystem.getDifficultyScale();
     return base / scale.eventFreq;
+  }
+
+  // ─── Low Gravity Mode (L32) ───
+  updateLowGravity() {
+    if (!this.levelSystem.getUnlockedItemTypes().includes('low_gravity_mode')) return;
+    if (this.effectManager.hasEffect('low_gravity')) return;
+
+    const now = Date.now();
+    if (now < this.lowGravityNextTime) return;
+
+    // Trigger low gravity event
+    this.effectManager.addEffect({
+      type: 'low_gravity',
+      duration: C.LOW_GRAVITY_DURATION,
+      apply: (engine) => {
+        engine.physics.setGravity(C.GRAVITY.y * C.LOW_GRAVITY_FACTOR);
+        // Wake all coins so they float
+        for (const coin of engine.coinManager.getCoins()) {
+          coin.body.wakeUp();
+        }
+        engine.audio.playLowGravityStart();
+        engine.callbacks.onLowGravityStart?.();
+      },
+      remove: (engine) => {
+        engine.physics.resetGravity();
+        engine.callbacks.onLowGravityEnd?.();
+      },
+    }, this);
+
+    this.lowGravityNextTime = now + this._randomLowGravityDelay();
+  }
+
+  _randomLowGravityDelay() {
+    const base = C.LOW_GRAVITY_MIN_INTERVAL + Math.random() * (C.LOW_GRAVITY_MAX_INTERVAL - C.LOW_GRAVITY_MIN_INTERVAL);
+    const scale = this.levelSystem.getDifficultyScale();
+    return base / scale.eventFreq;
+  }
+
+  // ─── Dual Pusher (L35) ───
+  _createSecondPusher() {
+    if (this.secondPusher) return;
+    const scale = this.levelSystem.getDifficultyScale();
+    this.secondPusher = new PusherController3D(this.physics, {
+      width: C.PUSHER_WIDTH * 0.7,
+      height: C.PUSHER_HEIGHT,
+      depth: C.PUSHER_DEPTH * 0.8,
+      zMin: C.DUAL_PUSHER_Z_MIN,
+      zMax: C.DUAL_PUSHER_Z_MAX,
+      speed: C.PUSHER_SPEED * C.DUAL_PUSHER_SPEED_MULT * scale.pusherSpeed,
+      startDirection: -1,  // opposite direction
+    });
+    this.renderer.createSecondPusherMesh(
+      C.PUSHER_WIDTH * 0.7, C.PUSHER_HEIGHT, C.PUSHER_DEPTH * 0.8
+    );
+  }
+
+  // ─── Boss Rush (L38) ───
+  startBossRush() {
+    if (!this.levelSystem.canBossRush()) return false;
+    if (this.bossRushActive) return false;
+    this.bossRushActive = true;
+    this.bossRushWave = 0;
+    this._startBossRushWave(0);
+    return true;
+  }
+
+  _startBossRushWave(waveIndex) {
+    if (waveIndex >= C.BOSS_RUSH_WAVES) {
+      // All waves defeated
+      this.bossRushActive = false;
+      this.callbacks.onBossRushComplete?.({
+        totalReward: C.BOSS_RUSH_WAVE_REWARD.reduce((a, b) => a + b, 0),
+      });
+      return;
+    }
+    this.bossRushWave = waveIndex;
+    this.bossSystem.maxHp = C.BOSS_RUSH_WAVE_HP[waveIndex];
+    this.bossSystem.attackInterval = C.BOSS_RUSH_WAVE_ATTACK_INTERVAL[waveIndex];
+    this.bossSystem.start();
+    this.renderer.showBoss();
+    this.audio.playBossRushWave();
+    this.callbacks.onBossStart?.({
+      hp: this.bossSystem.getHP(),
+      maxHp: this.bossSystem.getMaxHP(),
+      wave: waveIndex + 1,
+      totalWaves: C.BOSS_RUSH_WAVES,
+    });
+  }
+
+  _onBossRushWaveDefeated() {
+    const wave = this.bossRushWave;
+    const reward = C.BOSS_RUSH_WAVE_REWARD[wave] || 100;
+    this.callbacks.onBurstCoins?.(reward);
+    this.renderer.hideBoss();
+
+    const nextWave = wave + 1;
+    if (nextWave < C.BOSS_RUSH_WAVES) {
+      // Pause before next wave
+      setTimeout(() => {
+        if (this.bossRushActive) {
+          this._startBossRushWave(nextWave);
+        }
+      }, C.BOSS_RUSH_BREAK_MS);
+    } else {
+      this.bossRushActive = false;
+      this.callbacks.onBossRushComplete?.({
+        totalReward: C.BOSS_RUSH_WAVE_REWARD.reduce((a, b) => a + b, 0),
+      });
+    }
   }
 
   // ─── Bob-omb countdown ───
