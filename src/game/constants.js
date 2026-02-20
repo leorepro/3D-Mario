@@ -37,7 +37,7 @@ export const COIN_SIZES = {
     height: COIN_HEIGHT * 1.5,  // 0.225
     mass: COIN_MASS * 2.25,     // 2.025 (1.5² scaling)
     dropCost: 10,
-    collectValue: 5,
+    collectValue: 7,            // ROI 70% (vs small 50%) — high risk, high reward
     scoreValue: 5,
   },
 };
@@ -92,14 +92,14 @@ export const CHAIN_TIERS = [
 ];
 
 // ── Coin Recovery ──
-export const COIN_RECOVERY_INTERVAL_MS = 180000;
+export const COIN_RECOVERY_INTERVAL_MS = 60000;  // 1 coin per minute (was 3 min) — 60 coins/hr
 export const COIN_RECOVERY_MAX = 50;
 
 // ── Audio ──
 export const AUDIO_MASTER_VOLUME = 0.5;
 
 // ── Frenzy ──
-export const FRENZY_CHANCE = 1 / 50;
+export const FRENZY_CHANCE = 1 / 100;   // 1% per drop (was 2%) — keeps frenzy feeling special
 export const FRENZY_DURATION_MS = 15000;
 export const FRENZY_COIN_INTERVAL_MS = 400;
 export const FRENZY_COINS_PER_TICK = 2;
@@ -228,67 +228,66 @@ export const LEVEL_THRESHOLDS = [
 
 export const LEVEL_UNLOCKS = {
   1:  ['question_block', 'star', 'thwomp_event'],
-  2:  ['coin_reward_10'],
-  3:  ['mushroom', 'poison_mushroom'],
-  4:  ['coin_reward_15'],
-  5:  ['coin_tower', 'green_pipe'],
-  6:  ['coin_reward_20'],
-  7:  ['coin_reward_20'],
-  8:  ['fire_flower'],
-  9:  ['coin_reward_25'],
-  10: ['underground_scene', 'coin_reward_50'],
-  11: ['coin_reward_25'],
-  12: ['castle_scene'],
-  13: ['coin_reward_30'],
-  14: ['coin_reward_30'],
-  15: ['boss_mode', 'underwater_scene'],
-  16: ['coin_reward_35'],
-  17: ['coin_reward_35'],
-  18: ['coin_reward_40'],
-  19: ['coin_reward_40'],
-  20: ['custom_pusher', 'starry_night_scene', 'coin_reward_100'],
-  21: ['bob_omb_spawn'],
-  22: ['coin_reward_50'],
-  23: ['magnet_mushroom_spawn'],
-  24: ['coin_reward_50'],
-  25: ['diamond_coin', 'coin_reward_100'],
-  26: ['coin_pipe_spawn'],
-  27: ['coin_reward_60'],
-  28: ['giant_bob_omb'],
-  29: ['coin_reward_75'],
-  30: ['lava_castle_scene', 'coin_reward_150'],
-  31: ['coin_reward_75'],
-  32: ['low_gravity_mode'],
-  33: ['coin_reward_80'],
-  34: ['coin_reward_80'],
-  35: ['dual_pusher', 'coin_reward_150'],
-  36: ['coin_reward_100'],
-  37: ['coin_reward_100'],
-  38: ['boss_rush'],
-  39: ['coin_reward_120'],
-  40: ['rainbow_road_scene', 'coin_reward_200'],
-  41: ['coin_reward_120'],
-  42: ['coin_reward_150'],
-  43: ['coin_reward_150'],
-  44: ['coin_reward_150'],
-  45: ['mega_frenzy', 'coin_reward_200'],
-  46: ['coin_reward_200'],
-  47: ['coin_reward_200'],
-  48: ['coin_reward_250'],
-  49: ['coin_reward_250'],
-  50: ['space_scene', 'golden_pusher', 'coin_reward_500'],
+  2:  ['coin_reward_15'],
+  3:  ['mushroom', 'poison_mushroom', 'coin_reward_20'],
+  4:  ['coin_reward_25'],
+  5:  ['coin_tower', 'green_pipe', 'coin_reward_40'],
+  6:  ['coin_reward_30'],
+  7:  ['coin_reward_30'],
+  8:  ['fire_flower', 'coin_reward_35'],
+  9:  ['coin_reward_35'],
+  10: ['underground_scene', 'coin_reward_70'],
+  11: ['coin_reward_40'],
+  12: ['castle_scene', 'coin_reward_45'],
+  13: ['coin_reward_50'],
+  14: ['coin_reward_50'],
+  15: ['boss_mode', 'underwater_scene', 'coin_reward_90'],
+  16: ['coin_reward_55'],
+  17: ['coin_reward_55'],
+  18: ['coin_reward_60'],
+  19: ['coin_reward_60'],
+  20: ['custom_pusher', 'starry_night_scene', 'coin_reward_120'],
+  21: ['bob_omb_spawn', 'coin_reward_65'],
+  22: ['coin_reward_70'],
+  23: ['magnet_mushroom_spawn', 'coin_reward_70'],
+  24: ['coin_reward_75'],
+  25: ['diamond_coin', 'coin_reward_110'],
+  26: ['coin_pipe_spawn', 'coin_reward_80'],
+  27: ['coin_reward_80'],
+  28: ['giant_bob_omb', 'coin_reward_85'],
+  29: ['coin_reward_85'],
+  30: ['lava_castle_scene', 'coin_reward_130'],
+  31: ['coin_reward_85'],
+  32: ['low_gravity_mode', 'coin_reward_85'],
+  33: ['coin_reward_90'],
+  34: ['coin_reward_90'],
+  35: ['dual_pusher', 'coin_reward_130'],
+  36: ['coin_reward_95'],
+  37: ['coin_reward_95'],
+  38: ['boss_rush', 'coin_reward_100'],
+  39: ['coin_reward_100'],
+  40: ['rainbow_road_scene', 'coin_reward_150'],
+  41: ['coin_reward_100'],
+  42: ['coin_reward_100'],
+  43: ['coin_reward_105'],
+  44: ['coin_reward_105'],
+  45: ['mega_frenzy', 'coin_reward_140'],
+  46: ['coin_reward_110'],
+  47: ['coin_reward_110'],
+  48: ['coin_reward_115'],
+  49: ['coin_reward_115'],
+  50: ['space_scene', 'golden_pusher', 'coin_reward_200'],
 };
 
 // ── Level Coin Rewards ──
+// Smoothed curve: every level rewards coins, milestones (×5) give more.
+// Total ~3,995. Distribution: L2-10 7.5%, L11-20 15.6%, L21-30 21.3%, L31-40 25.5%, L41-50 30.0%
 export const LEVEL_COIN_REWARDS = {
-  2: 10,   4: 15,   6: 20,   7: 20,   9: 25,
-  10: 50,  11: 25,  13: 30,  14: 30,  16: 35,
-  17: 35,  18: 40,  19: 40,  20: 100,
-  22: 50,  24: 50,  25: 100, 27: 60,  29: 75,
-  30: 150, 31: 75,  33: 80,  34: 80,  35: 150,
-  36: 100, 37: 100, 39: 120, 40: 200,
-  41: 120, 42: 150, 43: 150, 44: 150, 45: 200,
-  46: 200, 47: 200, 48: 250, 49: 250, 50: 500,
+  2: 15,   3: 20,   4: 25,   5: 40,   6: 30,   7: 30,   8: 35,   9: 35,   10: 70,
+  11: 40,  12: 45,  13: 50,  14: 50,  15: 90,  16: 55,  17: 55,  18: 60,  19: 60,  20: 120,
+  21: 65,  22: 70,  23: 70,  24: 75,  25: 110, 26: 80,  27: 80,  28: 85,  29: 85,  30: 130,
+  31: 85,  32: 85,  33: 90,  34: 90,  35: 130, 36: 95,  37: 95,  38: 100, 39: 100, 40: 150,
+  41: 100, 42: 100, 43: 105, 44: 105, 45: 140, 46: 110, 47: 110, 48: 115, 49: 115, 50: 200,
 };
 
 // ── Difficulty Scaling (per 5 levels) ──
@@ -362,7 +361,9 @@ export const LAKITU_MAX_INTERVAL = 60000;   // 最長 60 秒
 export const LAKITU_FLY_IN_MS = 2000;       // 飛入動畫時間
 export const LAKITU_FISH_MS = 2000;         // 釣魚動畫時間
 export const LAKITU_FLY_OUT_MS = 2000;      // 飛出動畫時間
-export const LAKITU_COINS_TO_STEAL = 5;     // 偷走的金幣數量
+export const LAKITU_STEAL_MIN = 3;           // 最少偷走 3 枚
+export const LAKITU_STEAL_MAX = 20;          // 最多偷走 20 枚
+export const LAKITU_STEAL_RATIO = 0.15;      // 最多偷桌上 15% 的硬幣
 export const LAKITU_HEIGHT = 5;             // 飛行高度 (y)
 export const LAKITU_ENTRY_X = 8;            // 從右側進入 x 位置
 

@@ -703,9 +703,10 @@ export class GameEngine {
 
   _lakituStealCoins() {
     const coins = this.coinManager.getCoins();
-    // Random steal count: 5-100 coins
-    const stealTarget = 5 + Math.floor(Math.random() * 96);
-    const count = Math.min(stealTarget, coins.length);
+    // Steal a bounded amount: min–max, capped at a % of coins on table
+    const ratioLimit = Math.floor(coins.length * C.LAKITU_STEAL_RATIO);
+    const stealTarget = C.LAKITU_STEAL_MIN + Math.floor(Math.random() * (C.LAKITU_STEAL_MAX - C.LAKITU_STEAL_MIN + 1));
+    const count = Math.min(stealTarget, ratioLimit, coins.length);
     if (count <= 0) return;
 
     // Pick random coins to steal and remove from table
