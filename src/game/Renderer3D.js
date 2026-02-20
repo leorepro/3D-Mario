@@ -1604,6 +1604,112 @@ export class Renderer3D {
     }
   }
 
+  // ─── Bullet Bill ───
+  showBulletBill() {
+    if (this.bulletBillMesh) this.hideBulletBill();
+
+    const group = new THREE.Group();
+
+    // Body — horizontal black cylinder
+    const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.8, 16);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.4, roughness: 0.5 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.rotation.z = Math.PI / 2; // horizontal
+    body.castShadow = true;
+    group.add(body);
+
+    // Nose cone (hemisphere)
+    const noseGeo = new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+    const nose = new THREE.Mesh(noseGeo, bodyMat);
+    nose.rotation.z = -Math.PI / 2;
+    nose.position.x = -0.9;
+    group.add(nose);
+
+    // Eyes (angry white eyes)
+    const eyeGeo = new THREE.SphereGeometry(0.15, 8, 6);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const pupilGeo = new THREE.SphereGeometry(0.07, 6, 4);
+    const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Mesh(eyeGeo, eyeMat);
+      eye.position.set(-0.5, side * 0.18, 0.4);
+      group.add(eye);
+      const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+      pupil.position.set(-0.55, side * 0.18, 0.48);
+      group.add(pupil);
+    }
+
+    // Arms (white cylinders)
+    const armGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8);
+    const armMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.1, roughness: 0.8 });
+    for (const side of [-1, 1]) {
+      const arm = new THREE.Mesh(armGeo, armMat);
+      arm.position.set(0, side * 0.6, 0.15);
+      arm.rotation.z = side * 0.3;
+      group.add(arm);
+    }
+
+    // Tail flame (emissive orange/red)
+    const flameGeo = new THREE.SphereGeometry(0.3, 8, 6);
+    const flameMat = new THREE.MeshStandardMaterial({
+      color: 0xff4500, emissive: 0xff4500, emissiveIntensity: 1.0,
+    });
+    const flame = new THREE.Mesh(flameGeo, flameMat);
+    flame.position.x = 1.1;
+    flame.scale.set(1.2, 0.8, 0.8);
+    group.add(flame);
+    group.userData.flame = flame;
+
+    group.position.set(C.BULLET_BILL_ENTRY_X, C.BULLET_BILL_HEIGHT, 0);
+    this.scene.add(group);
+    this.bulletBillMesh = group;
+  }
+
+  hideBulletBill() {
+    if (this.bulletBillMesh) {
+      this.scene.remove(this.bulletBillMesh);
+      this.bulletBillMesh = null;
+    }
+  }
+
+  updateBulletBillAnimation(phase, progress) {
+    if (!this.bulletBillMesh) return;
+    const p = Math.max(0, Math.min(1, progress));
+    const halfW = C.TABLE_WIDTH / 2;
+
+    // Flame flicker
+    const flame = this.bulletBillMesh.userData.flame;
+    if (flame) {
+      flame.material.emissiveIntensity = 0.6 + Math.sin(this._time * 20) * 0.4;
+      flame.scale.x = 1.2 + Math.sin(this._time * 15) * 0.3;
+    }
+
+    if (phase === 'fly_in') {
+      // Fly from right entry to right edge of table
+      const eased = 1 - Math.pow(1 - p, 2);
+      const x = C.BULLET_BILL_ENTRY_X - (C.BULLET_BILL_ENTRY_X - halfW) * eased;
+      this.bulletBillMesh.position.set(x, C.BULLET_BILL_HEIGHT, 0);
+      // Vibration
+      this.bulletBillMesh.position.y += Math.sin(this._time * 30) * 0.03;
+    } else if (phase === 'sweep') {
+      // Sweep from right edge to left edge
+      const x = halfW - (halfW * 2) * p;
+      this.bulletBillMesh.position.set(x, C.BULLET_BILL_HEIGHT, 0);
+      // Trail particles
+      if (Math.random() < 0.3) {
+        this.emitParticles(
+          { x: x + 1, y: C.BULLET_BILL_HEIGHT, z: 0 },
+          { count: 2, color: 0xff4500, speed: 2 }
+        );
+      }
+    } else if (phase === 'fly_out') {
+      // Fly from left edge to off-screen left
+      const eased = p * p;
+      const x = -halfW - (C.BULLET_BILL_ENTRY_X - halfW) * eased;
+      this.bulletBillMesh.position.set(x, C.BULLET_BILL_HEIGHT, 0);
+    }
+  }
+
   flashBossDamage() {
     if (!this.bossMesh) return;
     // Quick red flash
@@ -1853,9 +1959,10 @@ export class Renderer3D {
     }
     this.itemMeshes.clear();
 
-    // Dispose boss & lakitu
+    // Dispose boss, lakitu & bullet bill
     this.hideBoss();
     this.hideLakitu();
+    this.hideBulletBill();
 
     this.smallCoinGeometry.dispose();
     this.largeCoinGeometry.dispose();

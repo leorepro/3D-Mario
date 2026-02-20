@@ -322,6 +322,45 @@ function createMagnetMushroom() {
   return group;
 }
 
+// ── Coin Pipe 💰 ──
+function createCoinPipe() {
+  const group = new THREE.Group();
+
+  const bodyGeo = getOrCreate('cpipe_body', () => new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16));
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0xffd700, metalness: 0.6, roughness: 0.3,
+    emissive: 0xffd700, emissiveIntensity: 0.1,
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.25;
+  body.castShadow = true;
+  group.add(body);
+
+  const lipGeo = getOrCreate('cpipe_lip', () => new THREE.CylinderGeometry(0.38, 0.38, 0.1, 16));
+  const lipMat = new THREE.MeshStandardMaterial({ color: 0xb8860b, metalness: 0.5, roughness: 0.3 });
+  const lip = new THREE.Mesh(lipGeo, lipMat);
+  lip.position.y = 0.55;
+  lip.castShadow = true;
+  group.add(lip);
+
+  const insideGeo = getOrCreate('cpipe_inside', () => new THREE.CylinderGeometry(0.22, 0.22, 0.05, 16));
+  const insideMat = new THREE.MeshStandardMaterial({
+    color: 0xffc107, emissive: 0xffc107, emissiveIntensity: 0.5,
+  });
+  const inside = new THREE.Mesh(insideGeo, insideMat);
+  inside.position.y = 0.58;
+  group.add(inside);
+
+  const coinGeo = getOrCreate('cpipe_coin', () => new THREE.CylinderGeometry(0.1, 0.1, 0.02, 12));
+  const coinMat = new THREE.MeshStandardMaterial({ color: 0xffc107, metalness: 0.8, roughness: 0.2 });
+  const coin = new THREE.Mesh(coinGeo, coinMat);
+  coin.rotation.x = Math.PI / 2;
+  coin.position.set(0, 0.3, 0.31);
+  group.add(coin);
+
+  return group;
+}
+
 // ═══════════ PUBLIC API ═══════════
 
 const CREATORS = {
@@ -334,6 +373,7 @@ const CREATORS = {
   poison_mushroom: createPoisonMushroom,
   bob_omb: createBobOmb,
   magnet_mushroom: createMagnetMushroom,
+  coin_pipe: createCoinPipe,
 };
 
 export class ItemMeshFactory {

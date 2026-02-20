@@ -14,7 +14,7 @@ const PRIZE_LABELS_ZH = {
   mushroom: '蘑菇',
   fire: '火焰花',
   frenzy: '狂熱！',
-  nothing: '再試一次',
+  coin_pipe: '金幣雨管道',
 };
 
 const wheel = new LuckyWheel();
@@ -158,16 +158,34 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
           </div>
         )}
 
-        {/* Buttons */}
+        {/* Claim button with orbiting effect */}
         <div className="flex gap-2 justify-center">
           {result && (
-            <button
-              onClick={onClose}
-              className="bg-mario-green text-white px-6 py-2 rounded-xl font-bold
-                         cursor-pointer hover:brightness-110 active:scale-95 transition-transform"
-            >
-              領取
-            </button>
+            <div className="relative inline-block">
+              {/* Orbiting sparkle ring */}
+              <div
+                className="absolute inset-[-8px] rounded-2xl pointer-events-none"
+                style={{
+                  background: 'conic-gradient(from 0deg, transparent 0%, #fbd000 25%, transparent 50%, #43b047 75%, transparent 100%)',
+                  animation: 'wheelClaimSpin 2s linear forwards',
+                  opacity: 0.8,
+                }}
+              />
+              <div className="absolute inset-[-4px] rounded-xl bg-gray-900 pointer-events-none" />
+              <button
+                onClick={onClose}
+                className="relative z-10 bg-mario-green text-white px-6 py-2 rounded-xl font-bold
+                           cursor-pointer hover:brightness-110 active:scale-95 transition-transform"
+              >
+                領取
+              </button>
+              <style>{`
+                @keyframes wheelClaimSpin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}</style>
+            </div>
           )}
         </div>
       </div>

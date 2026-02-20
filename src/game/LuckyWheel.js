@@ -9,7 +9,7 @@ export const WHEEL_PRIZES = [
   { id: 'mushroom',   label: 'Mushroom',       weight: 12, reward: { spawnItem: 'mushroom' },color: '#43b047' },
   { id: 'fire',       label: 'Fire Flower',    weight: 5,  reward: { spawnItem: 'fire_flower' }, color: '#ff4500' },
   { id: 'frenzy',     label: 'FRENZY!',        weight: 3,  reward: { frenzy: true },         color: '#e52521' },
-  { id: 'nothing',    label: 'Try Again',      weight: 10, reward: { coins: 1 },             color: '#888888' },
+  { id: 'coin_pipe',  label: 'Coin Pipe',      weight: 10, reward: { spawnItem: 'coin_pipe' }, color: '#ffd700' },
 ];
 
 export const WHEEL_TRIGGER_INTERVAL = 30; // Every 30 coins dropped

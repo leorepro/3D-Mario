@@ -43,6 +43,7 @@ export function useGameEngine(containerRef) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [canBoss, setCanBoss] = useState(false);
   const [lakituEvent, setLakituEvent] = useState(null);
+  const [bulletBillEvent, setBulletBillEvent] = useState(null);
   const [coinSize, setCoinSizeState] = useState('small');
   const coinSizeRef = useRef('small');
 
@@ -112,6 +113,15 @@ export function useGameEngine(containerRef) {
       onLakituEnd: () => {
         // Keep showing for 2 seconds so player sees the result
         setTimeout(() => setLakituEvent(null), 2000);
+      },
+      onBulletBillStart: () => {
+        setBulletBillEvent({ active: true });
+      },
+      onBulletBillSweep: () => {
+        setBulletBillEvent(prev => prev ? { ...prev, sweeping: true } : null);
+      },
+      onBulletBillEnd: () => {
+        setTimeout(() => setBulletBillEvent(null), 1500);
       },
     });
 
@@ -330,6 +340,7 @@ export function useGameEngine(containerRef) {
     abortBoss,
     canBoss,
     lakituEvent,
+    bulletBillEvent,
     wheelVisible,
     setWheelVisible,
     handleWheelPrize,

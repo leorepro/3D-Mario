@@ -97,6 +97,11 @@ export class GameEngine {
     // Magnet effect
     this.magnetActive = false;
 
+    // Bullet Bill state
+    this.bulletBillState = 'idle';
+    this.bulletBillNextTime = Date.now() + this._randomBulletBillDelay();
+    this.bulletBillPhaseStart = 0;
+
     // Restore scene from save
     const savedScene = this.saveManager.getCurrentScene();
     if (savedScene && savedScene !== 'overworld') {
@@ -167,6 +172,9 @@ export class GameEngine {
     // Update magnet effect
     this.updateMagnet();
 
+    // Update Bullet Bill event
+    this.updateBulletBill();
+
     // Update boss
     if (this.bossSystem.isActive()) {
       this.bossSystem.update();
@@ -181,6 +189,7 @@ export class GameEngine {
       coins: this.coinManager.getCoins(),
       items: this.itemManager.getItems(),
       dropX: this.dropX,
+      magnetActive: this.magnetActive,
       dt,
     });
 
@@ -440,6 +449,27 @@ export class GameEngine {
         break;
       }
 
+      case 'coin_rain': {
+        // Coin Pipe — rain coins from above
+        const count = def.effect.count || 15;
+        const duration = def.effect.duration || 3000;
+        const interval = duration / count;
+        this.audio.playCoinRainStart();
+        for (let i = 0; i < count; i++) {
+          setTimeout(() => {
+            const x = (Math.random() - 0.5) * (C.TABLE_WIDTH - 1);
+            const z = C.DROP_Z + Math.random() * 2;
+            this.coinManager.spawnCoin(x, C.DROP_Y + 2, z);
+            this.audio.playCoinDrop();
+            this.renderer.emitParticles(
+              { x, y: C.DROP_Y + 2, z },
+              { count: 3, color: 0xffc107, speed: 2 }
+            );
+          }, i * interval);
+        }
+        break;
+      }
+
       case 'magnet': {
         // Magnet Mushroom — attract coins for 10 seconds
         const dur = def.effect.duration || 10000;
@@ -584,6 +614,78 @@ export class GameEngine {
     return C.LAKITU_MIN_INTERVAL + Math.random() * (C.LAKITU_MAX_INTERVAL - C.LAKITU_MIN_INTERVAL);
   }
 
+  // ─── Bullet Bill event ───
+  updateBulletBill() {
+    const now = Date.now();
+
+    switch (this.bulletBillState) {
+      case 'idle':
+        if (now >= this.bulletBillNextTime && this.coinManager.getCoinCount() >= 5) {
+          this.bulletBillState = 'flying_in';
+          this.bulletBillPhaseStart = now;
+          this.renderer.showBulletBill();
+          this.audio.playBulletBillAppear();
+          this.callbacks.onBulletBillStart?.();
+        }
+        break;
+
+      case 'flying_in': {
+        const elapsed = now - this.bulletBillPhaseStart;
+        const progress = Math.min(1, elapsed / C.BULLET_BILL_FLY_IN_MS);
+        this.renderer.updateBulletBillAnimation('fly_in', progress);
+        if (progress >= 1) {
+          this.bulletBillState = 'sweeping';
+          this.bulletBillPhaseStart = now;
+          this.audio.playBulletBillSweep();
+          this.callbacks.onBulletBillSweep?.();
+        }
+        break;
+      }
+
+      case 'sweeping': {
+        const elapsed = now - this.bulletBillPhaseStart;
+        const progress = Math.min(1, elapsed / C.BULLET_BILL_SWEEP_MS);
+        this.renderer.updateBulletBillAnimation('sweep', progress);
+
+        // Push coins near Bullet Bill's current x position
+        const halfW = C.TABLE_WIDTH / 2;
+        const currentX = halfW - (halfW * 2) * progress;
+        const coins = this.coinManager.getCoins();
+        for (const coin of coins) {
+          const dx = Math.abs(coin.body.position.x - currentX);
+          if (dx < 1.5) {
+            coin.body.wakeUp();
+            coin.body.velocity.z += C.BULLET_BILL_PUSH_FORCE * 0.15;
+            coin.body.velocity.y += 1;
+          }
+        }
+
+        if (progress >= 1) {
+          this.bulletBillState = 'flying_out';
+          this.bulletBillPhaseStart = now;
+        }
+        break;
+      }
+
+      case 'flying_out': {
+        const elapsed = now - this.bulletBillPhaseStart;
+        const progress = Math.min(1, elapsed / C.BULLET_BILL_FLY_OUT_MS);
+        this.renderer.updateBulletBillAnimation('fly_out', progress);
+        if (progress >= 1) {
+          this.bulletBillState = 'idle';
+          this.renderer.hideBulletBill();
+          this.bulletBillNextTime = now + this._randomBulletBillDelay();
+          this.callbacks.onBulletBillEnd?.();
+        }
+        break;
+      }
+    }
+  }
+
+  _randomBulletBillDelay() {
+    return C.BULLET_BILL_MIN_INTERVAL + Math.random() * (C.BULLET_BILL_MAX_INTERVAL - C.BULLET_BILL_MIN_INTERVAL);
+  }
+
   // ─── Bob-omb countdown ───
   updateBobOmbs() {
     if (this.activeBobOmbs.length === 0) return;
@@ -658,14 +760,23 @@ export class GameEngine {
   updateMagnet() {
     if (!this.magnetActive) return;
 
-    const frontZone = C.TABLE_DEPTH / 2 - 4;
     const coins = this.coinManager.getCoins();
     for (const coin of coins) {
-      if (coin.body.position.z > frontZone) {
-        coin.body.wakeUp();
-        // Gentle pull toward front edge
-        coin.body.velocity.z += 0.3;
-      }
+      coin.body.wakeUp();
+      // Strong pull toward front edge
+      coin.body.velocity.z += 1.5;
+      // Gently pull toward center x
+      coin.body.velocity.x -= coin.body.position.x * 0.1;
+    }
+
+    // Visual feedback: emit blue particles at random coin positions
+    this._magnetParticleTimer = (this._magnetParticleTimer || 0) + 1;
+    if (this._magnetParticleTimer % 10 === 0 && coins.length > 0) {
+      const rc = coins[Math.floor(Math.random() * coins.length)];
+      this.renderer.emitParticles(
+        { x: rc.body.position.x, y: rc.body.position.y + 0.3, z: rc.body.position.z },
+        { count: 4, color: 0x4444ff, speed: 1.5 }
+      );
     }
   }
 

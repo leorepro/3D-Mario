@@ -153,6 +153,11 @@ export const ITEM_TYPES = {
     physics: 'sphere', physicsRadius: 0.3, color: 0x4444ff, minLevel: 1,
     effect: { type: 'magnet', duration: 10000 },
   },
+  coin_pipe: {
+    id: 'coin_pipe', label: 'Coin Pipe', spawnRate: 0, mass: 2.0,
+    physics: 'cylinder', physicsRadius: 0.3, physicsHeight: 0.5, color: 0xffd700, minLevel: 1,
+    effect: { type: 'coin_rain', count: 15, duration: 3000 },
+  },
 };
 
 // ── Bob-omb ──
@@ -223,6 +228,20 @@ export const LAKITU_FLY_OUT_MS = 2000;      // 飛出動畫時間
 export const LAKITU_COINS_TO_STEAL = 5;     // 偷走的金幣數量
 export const LAKITU_HEIGHT = 5;             // 飛行高度 (y)
 export const LAKITU_ENTRY_X = 8;            // 從右側進入 x 位置
+
+// ── Coin Rain ──
+export const COIN_RAIN_COUNT = 15;
+export const COIN_RAIN_DURATION_MS = 3000;
+
+// ── Bullet Bill Event ──
+export const BULLET_BILL_MIN_INTERVAL = 45000;
+export const BULLET_BILL_MAX_INTERVAL = 150000;
+export const BULLET_BILL_FLY_IN_MS = 800;
+export const BULLET_BILL_SWEEP_MS = 1200;
+export const BULLET_BILL_FLY_OUT_MS = 600;
+export const BULLET_BILL_PUSH_FORCE = 6;
+export const BULLET_BILL_HEIGHT = 1.0;
+export const BULLET_BILL_ENTRY_X = 10;
 
 // ── Material Colors ──
 export const MATERIAL_CONFIG = {

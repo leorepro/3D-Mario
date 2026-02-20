@@ -255,6 +255,28 @@ export class AudioManager {
     setTimeout(() => this._playTone(330, 0.25, 'triangle', 0.1), 200);
   }
 
+  /** Coin Pipe rain start — ascending sparkle */
+  playCoinRainStart() {
+    [660, 880, 1100, 1320, 1760].forEach((f, i) => {
+      setTimeout(() => this._playTone(f, 0.12, 'sine', 0.2), i * 60);
+    });
+  }
+
+  /** Bullet Bill appears — rumbling approach */
+  playBulletBillAppear() {
+    this._playTone(80, 0.4, 'sawtooth', 0.3);
+    this._playNoise(0.3, 0.15);
+    setTimeout(() => this._playTone(120, 0.3, 'sawtooth', 0.25), 100);
+    setTimeout(() => this._playTone(200, 0.2, 'sawtooth', 0.2), 250);
+  }
+
+  /** Bullet Bill sweep — wind rush */
+  playBulletBillSweep() {
+    this._playNoise(0.5, 0.2);
+    this._playTone(150, 0.5, 'sawtooth', 0.15);
+    setTimeout(() => this._playTone(100, 0.4, 'triangle', 0.12), 200);
+  }
+
   /** Lakitu appears — warning siren descending */
   playLakituAppear() {
     // Descending warning tones
