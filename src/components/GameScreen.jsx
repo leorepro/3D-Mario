@@ -20,6 +20,7 @@ import { LakituPopup } from './LakituPopup.jsx';
 import { BulletBillPopup } from './BulletBillPopup.jsx';
 import { ThwompPopup } from './ThwompPopup.jsx';
 import { LowGravityPopup } from './LowGravityPopup.jsx';
+import { RulesPopup } from './RulesPopup.jsx';
 
 /** Calculate scale factor to fit the game within the device screen */
 function useResponsiveScale() {
@@ -67,6 +68,8 @@ export function GameScreen() {
     leaderboard,
     coinSize, setCoinSize,
   } = useGameEngine(containerRef);
+
+  const [rulesVisible, setRulesVisible] = useState(false);
 
   // Total game height for the outer wrapper
   const totalH = VIEWPORT_HEIGHT + 112;
@@ -138,6 +141,7 @@ export function GameScreen() {
           onToggleAudio={toggleAudio}
           onOpenSettings={() => setSettingsVisible(true)}
           onOpenLeaderboard={() => setLeaderboardVisible(true)}
+          onOpenRules={() => setRulesVisible(true)}
           canBoss={canBoss}
           onStartBoss={startBoss}
           bossActive={bossActive}
@@ -175,6 +179,11 @@ export function GameScreen() {
           visible={leaderboardVisible}
           onClose={() => setLeaderboardVisible(false)}
           leaderboard={leaderboard}
+        />
+
+        <RulesPopup
+          visible={rulesVisible}
+          onClose={() => setRulesVisible(false)}
         />
       </div>
     </div>

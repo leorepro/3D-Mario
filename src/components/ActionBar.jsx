@@ -4,7 +4,7 @@ import { COIN_SIZES } from '../game/constants.js';
 export function ActionBar({
   coinBalance, onDrop, autoDropping, onToggleAutoDrop,
   audioMode = 'all', onToggleAudio,
-  onOpenSettings, onOpenLeaderboard,
+  onOpenSettings, onOpenLeaderboard, onOpenRules,
   canBoss, onStartBoss, bossActive,
   canBossRush, onStartBossRush,
   score, level,
@@ -110,6 +110,15 @@ export function ActionBar({
         title="排行榜"
       >
         {'\uD83C\uDFC6'}
+      </button>
+
+      <button
+        onClick={onOpenRules}
+        className="px-2 py-2 rounded-xl text-base cursor-pointer
+                   active:scale-95 transition-transform bg-white/10 hover:bg-white/20"
+        title="遊戲規則"
+      >
+        {'\u2753'}
       </button>
 
       <ShareButton score={score} level={level} />

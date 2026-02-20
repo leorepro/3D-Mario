@@ -44,8 +44,15 @@ A Mario-themed 3D coin pusher web game. Mobile-first, portrait orientation. Play
 - Pusher: full table width (8) × 1.2 × 0.6, kinematic body, Z range -4.3 to +2.5
 - Camera: perspective at (0, 12, 10) looking at (0, 0, -1)
 - Gravity: { x: 0, y: -9.82, z: 0 }
+- Coin cost: small=2, large=10; score: small=1, large=5
+- Auto-drop interval: 500ms
 - Chain tiers: 2→Nice!(×1.5), 5→Great!(×2), 10→Amazing!(×3), 20→SUPER MARIO!(×5)
 - Coin recovery: 1 coin per 3 minutes (max 50 free balance)
+- Super Mushroom: 1.5x pusher width+depth (12s); Poison Mushroom: 0.6x (8s)
+- Magnet Mushroom: 5s duration; Diamond Coin: 100 score
+- Giant Bob-omb blast radius: 15
+- Lakitu: steals 5-100 coins, 30-60s interval
+- Thwomp: unlocked at level 1
 
 ## Development Progress
 - **P0 (MVP)**: ✅ Complete — physics, pusher, coins, scoring, HUD, touch input, auto-drop

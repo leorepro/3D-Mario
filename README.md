@@ -46,8 +46,8 @@ npm run preview
   - 5x = Great!（2 倍）
   - 10x = Amazing!（3 倍）
   - 20x = SUPER MARIO!（5 倍）
-- **Dual Coin Sizes / 雙硬幣尺寸** -- 小硬幣（花費 1）和大硬幣（花費 5，分數更高）
-- **Auto-Drop / 自動投幣** -- 開啟後每 600 毫秒自動投放一枚硬幣
+- **Dual Coin Sizes / 雙硬幣尺寸** -- 小硬幣（花費 2）和大硬幣（花費 10，分數更高）
+- **Auto-Drop / 自動投幣** -- 開啟後每 500 毫秒自動投放一枚硬幣
 - **Coin Recovery / 硬幣恢復** -- 免費硬幣會隨時間自動回復（每 3 分鐘 1 枚，上限 50 枚）
 
 ### Progression System (50 Levels) / 進度系統（50 個等級）
@@ -67,24 +67,24 @@ XP-based leveling with increasing difficulty every 5 levels:
 | --- | --- | --- |
 | Question Block / 問號磚塊 | 1 | Random reward / 隨機獎勵 |
 | Super Star / 超級星星 | 3 | 3x score multiplier (10s) / 3 倍分數（10 秒） |
-| Super Mushroom / 超級蘑菇 | 5 | 1.5x pusher width (12s) / 推板寬度 1.5 倍（12 秒） |
-| Poison Mushroom / 毒蘑菇 | 5 | 0.6x pusher width (8s) / 推板寬度 0.6 倍（8 秒） |
+| Super Mushroom / 超級蘑菇 | 5 | 1.5x pusher size (12s) / 推板尺寸 1.5 倍（12 秒） |
+| Poison Mushroom / 毒蘑菇 | 5 | 0.6x pusher size (8s) / 推板尺寸 0.6 倍（8 秒） |
 | Coin Tower / 金幣塔 | 7 | Burst of 10 coins / 爆發 10 枚硬幣 |
 | Fire Flower / 火焰花 | 8 | Clear a row of coins / 清除一排硬幣 |
 | Green Pipe / 綠色水管 | 10 | Teleport 5 coins / 傳送 5 枚硬幣 |
 | Coin Pipe / 金幣水管 | 12 | Coin rain -- 15 coins over 3s / 金幣雨 -- 3 秒內 15 枚硬幣 |
 | Bob-omb / 炸彈乒乓 | 21 | Explosion after 5s fuse (radius 6) / 5 秒後爆炸（半徑 6） |
-| Magnet Mushroom / 磁鐵蘑菇 | 23 | Pull coins to center (10s) / 將硬幣吸向中心（10 秒） |
-| Diamond Coin / 鑽石硬幣 | 25 | Worth 50 score / 價值 50 分 |
-| Giant Bob-omb / 巨型炸彈乒乓 | 28 | Huge explosion (radius 10) / 巨大爆炸（半徑 10） |
+| Magnet Mushroom / 磁鐵蘑菇 | 23 | Pull coins to center (5s) / 將硬幣吸向中心（5 秒） |
+| Diamond Coin / 鑽石硬幣 | 25 | Worth 100 score / 價值 100 分 |
+| Giant Bob-omb / 巨型炸彈乒乓 | 28 | Huge explosion (radius 15) / 巨大爆炸（半徑 15） |
 
 ### Events / 事件
 
 | Event / 事件 | Level / 等級 | Description / 說明 |
 | --- | --- | --- |
-| Lakitu / 球蓋姆 | 1+ | Cloud steals 5-50 coins randomly / 雲上角色隨機偷走 5-50 枚硬幣 |
+| Lakitu / 球蓋姆 | 1+ | Cloud steals 5-100 coins randomly (30-60s interval) / 雲上角色隨機偷走 5-100 枚硬幣（30-60 秒間隔） |
 | Bullet Bill / 砲彈刺客 | 1+ | Sweeps coins off the table / 將硬幣掃出桌面 |
-| Thwomp / 咚咚 | 30+ | Slams down and scatters coins / 砸下並打散硬幣 |
+| Thwomp / 咚咚 | 1+ | Slams down and scatters coins / 砸下並打散硬幣 |
 
 ### Game Modes / 遊戲模式
 

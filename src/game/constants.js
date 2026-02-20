@@ -29,7 +29,7 @@ export const COIN_SIZES = {
     height: COIN_HEIGHT,
     mass: COIN_MASS,
     dropCost: 2,
-    collectValue: 2,
+    collectValue: 1,
     scoreValue: 1,
   },
   large: {
@@ -37,7 +37,7 @@ export const COIN_SIZES = {
     height: COIN_HEIGHT * 1.5,  // 0.225
     mass: COIN_MASS * 2.25,     // 2.025 (1.5² scaling)
     dropCost: 10,
-    collectValue: 10,
+    collectValue: 5,
     scoreValue: 5,
   },
 };
@@ -227,7 +227,7 @@ export const LEVEL_THRESHOLDS = [
 ];
 
 export const LEVEL_UNLOCKS = {
-  1:  ['question_block', 'star'],
+  1:  ['question_block', 'star', 'thwomp_event'],
   2:  ['coin_reward_10'],
   3:  ['mushroom', 'poison_mushroom'],
   4:  ['coin_reward_15'],
@@ -256,7 +256,7 @@ export const LEVEL_UNLOCKS = {
   27: ['coin_reward_60'],
   28: ['giant_bob_omb'],
   29: ['coin_reward_75'],
-  30: ['lava_castle_scene', 'thwomp_event', 'coin_reward_150'],
+  30: ['lava_castle_scene', 'coin_reward_150'],
   31: ['coin_reward_75'],
   32: ['low_gravity_mode'],
   33: ['coin_reward_80'],
@@ -358,7 +358,7 @@ export const SCENES = {
 
 // ── Lakitu Event ──
 export const LAKITU_MIN_INTERVAL = 30000;   // 最短 30 秒
-export const LAKITU_MAX_INTERVAL = 120000;  // 最長 2 分鐘
+export const LAKITU_MAX_INTERVAL = 60000;   // 最長 60 秒
 export const LAKITU_FLY_IN_MS = 2000;       // 飛入動畫時間
 export const LAKITU_FISH_MS = 2000;         // 釣魚動畫時間
 export const LAKITU_FLY_OUT_MS = 2000;      // 飛出動畫時間
