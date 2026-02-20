@@ -143,7 +143,23 @@ export const ITEM_TYPES = {
     physics: 'sphere', physicsRadius: 0.3, color: 0x800080, minLevel: 3,
     effect: { type: 'narrower_pusher', widthMultiplier: 0.6, duration: 8000 },
   },
+  bob_omb: {
+    id: 'bob_omb', label: 'Bob-omb', spawnRate: 0, mass: 1.2,
+    physics: 'sphere', physicsRadius: 0.3, color: 0x222222, minLevel: 1,
+    effect: { type: 'bob_omb' },
+  },
+  magnet_mushroom: {
+    id: 'magnet_mushroom', label: 'Magnet Mushroom', spawnRate: 0, mass: 0.6,
+    physics: 'sphere', physicsRadius: 0.3, color: 0x4444ff, minLevel: 1,
+    effect: { type: 'magnet', duration: 10000 },
+  },
 };
+
+// ── Bob-omb ──
+export const BOBOMB_FUSE_MS = 5000;
+export const BOBOMB_BLAST_RADIUS = 3.0;
+export const BOBOMB_PUSH_FORCE = 8;
+export const BOBOMB_SCATTER_FORCE = 6;
 
 // ══════════════════════════════════════
 // ── P3: Level System ──

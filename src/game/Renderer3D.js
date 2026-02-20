@@ -1784,6 +1784,26 @@ export class Renderer3D {
         mesh.position.y = item.body.position.y + Math.sin(this._time * 3) * 0.05;
       } else if (item.type === 'fire_flower') {
         mesh.rotation.y = this._time * 1.5;
+      } else if (item.type === 'bob_omb') {
+        // Blink faster as fuse runs down (sinusoidal emissive toggle)
+        const blinkSpeed = 3 + this._time * 0.5; // accelerates over time
+        const blink = Math.sin(this._time * blinkSpeed) > 0;
+        mesh.traverse((child) => {
+          if (child.isMesh && child.material && child.material.color &&
+              child.material.color.r < 0.2 && child.material.color.g < 0.2 && child.material.color.b < 0.2) {
+            child.material.emissive?.setHex(blink ? 0xff2200 : 0x000000);
+            child.material.emissiveIntensity = blink ? 0.6 : 0;
+          }
+        });
+      } else if (item.type === 'magnet_mushroom') {
+        // Gentle glow pulse
+        const pulse = 0.15 + Math.sin(this._time * 4) * 0.1;
+        mesh.traverse((child) => {
+          if (child.isMesh && child.material && child.material.emissiveIntensity !== undefined &&
+              child.material.color && child.material.color.b > 0.8) {
+            child.material.emissiveIntensity = pulse;
+          }
+        });
       }
     }
 

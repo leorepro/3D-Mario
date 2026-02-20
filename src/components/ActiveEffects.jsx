@@ -4,6 +4,7 @@ const EFFECT_ICONS = {
   score_multiplier: { icon: '⭐', label: '星星加成', color: '#fbd000' },
   wider_pusher: { icon: '🍄', label: '推板加寬', color: '#43b047' },
   frenzy_speed: { icon: '🔥', label: '狂熱加速', color: '#ff4500' },
+  magnet: { icon: '🧲', label: '磁鐵吸引', color: '#4444ff' },
 };
 
 export function ActiveEffects({ engineRef }) {

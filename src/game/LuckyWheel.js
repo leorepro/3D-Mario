@@ -2,8 +2,8 @@
  * LuckyWheel — Triggers every 30 coins invested. Weighted random prizes.
  */
 export const WHEEL_PRIZES = [
-  { id: 'coins_10',   label: '10 Coins',       weight: 30, reward: { coins: 10 },           color: '#ffc107' },
-  { id: 'coins_25',   label: '25 Coins',       weight: 20, reward: { coins: 25 },           color: '#ff9800' },
+  { id: 'bob_omb',    label: 'Bob-omb',         weight: 30, reward: { spawnItem: 'bob_omb' },  color: '#222222' },
+  { id: 'magnet',     label: 'Magnet Mushroom', weight: 20, reward: { spawnItem: 'magnet_mushroom' }, color: '#4444ff' },
   { id: 'coins_50',   label: '50 Coins',       weight: 8,  reward: { coins: 50 },           color: '#e52521' },
   { id: 'star_item',  label: 'Super Star',     weight: 12, reward: { spawnItem: 'star' },   color: '#fbd000' },
   { id: 'mushroom',   label: 'Mushroom',       weight: 12, reward: { spawnItem: 'mushroom' },color: '#43b047' },

@@ -91,6 +91,12 @@ export class GameEngine {
     this.lakituNextTime = Date.now() + this._randomLakituDelay();
     this.lakituPhaseStart = 0;
 
+    // Bob-omb tracking
+    this.activeBobOmbs = []; // { itemId, spawnTime }
+
+    // Magnet effect
+    this.magnetActive = false;
+
     // Restore scene from save
     const savedScene = this.saveManager.getCurrentScene();
     if (savedScene && savedScene !== 'overworld') {
@@ -154,6 +160,12 @@ export class GameEngine {
 
     // Update Lakitu event
     this.updateLakitu();
+
+    // Update Bob-ombs
+    this.updateBobOmbs();
+
+    // Update magnet effect
+    this.updateMagnet();
 
     // Update boss
     if (this.bossSystem.isActive()) {
@@ -418,6 +430,28 @@ export class GameEngine {
         }
         break;
       }
+
+      case 'bob_omb': {
+        // Bob-omb collected from front edge — reward explosion!
+        const bPos = item.body.position;
+        this._bobOmbExplode(bPos, true);
+        // Remove from tracking
+        this.activeBobOmbs = this.activeBobOmbs.filter(b => b.itemId !== item.id);
+        break;
+      }
+
+      case 'magnet': {
+        // Magnet Mushroom — attract coins for 10 seconds
+        const dur = def.effect.duration || 10000;
+        this.audio.playMagnetActivate();
+        this.effectManager.addEffect({
+          type: 'magnet',
+          duration: dur,
+          apply: (engine) => { engine.magnetActive = true; },
+          remove: (engine) => { engine.magnetActive = false; },
+        }, this);
+        break;
+      }
     }
 
     // Check achievements after item collection
@@ -550,6 +584,87 @@ export class GameEngine {
     return C.LAKITU_MIN_INTERVAL + Math.random() * (C.LAKITU_MAX_INTERVAL - C.LAKITU_MIN_INTERVAL);
   }
 
+  // ─── Bob-omb countdown ───
+  updateBobOmbs() {
+    if (this.activeBobOmbs.length === 0) return;
+    const now = Date.now();
+
+    for (let i = this.activeBobOmbs.length - 1; i >= 0; i--) {
+      const entry = this.activeBobOmbs[i];
+      const elapsed = now - entry.spawnTime;
+
+      // Check if item still exists on the table
+      const item = this.itemManager.getItems().find(it => it.id === entry.itemId);
+      if (!item) {
+        // Already collected or removed
+        this.activeBobOmbs.splice(i, 1);
+        continue;
+      }
+
+      if (elapsed >= C.BOBOMB_FUSE_MS) {
+        // Timer expired — penalty explosion!
+        const pos = item.body.position;
+        this._bobOmbExplode(pos, false);
+        this.itemManager.removeItem(item);
+        this.activeBobOmbs.splice(i, 1);
+      }
+    }
+  }
+
+  _bobOmbExplode(pos, isReward) {
+    const force = isReward ? C.BOBOMB_PUSH_FORCE : C.BOBOMB_SCATTER_FORCE;
+    const particleColor = isReward ? 0xffc107 : 0xff4500;
+
+    // Explosion particles
+    this.renderer.emitParticles(
+      { x: pos.x, y: pos.y, z: pos.z },
+      { count: 25, color: particleColor, speed: 5 }
+    );
+    this.renderer.emitParticles(
+      { x: pos.x, y: pos.y + 0.5, z: pos.z },
+      { count: 15, color: 0xff0000, speed: 4 }
+    );
+
+    this.audio.playBobOmbExplode();
+
+    // Affect nearby coins
+    const coins = this.coinManager.getCoins();
+    for (const coin of coins) {
+      const cp = coin.body.position;
+      const dx = cp.x - pos.x;
+      const dy = cp.y - pos.y;
+      const dz = cp.z - pos.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (dist < C.BOBOMB_BLAST_RADIUS && dist > 0.01) {
+        coin.body.wakeUp();
+        if (isReward) {
+          // Push coins forward (toward front edge)
+          coin.body.velocity.set(dx * 0.5, 2, force);
+        } else {
+          // Scatter coins away from explosion center
+          const scale = force / dist;
+          coin.body.velocity.set(dx * scale, 3, dz * scale);
+        }
+      }
+    }
+  }
+
+  // ─── Magnet effect ───
+  updateMagnet() {
+    if (!this.magnetActive) return;
+
+    const frontZone = C.TABLE_DEPTH / 2 - 4;
+    const coins = this.coinManager.getCoins();
+    for (const coin of coins) {
+      if (coin.body.position.z > frontZone) {
+        coin.body.wakeUp();
+        // Gentle pull toward front edge
+        coin.body.velocity.z += 0.3;
+      }
+    }
+  }
+
   dropCoin(ignoreCooldown = false) {
     const now = Date.now();
     if (!ignoreCooldown && now - this.lastDropTime < C.DROP_COOLDOWN_MS) return false;
@@ -607,7 +722,11 @@ export class GameEngine {
     const x = (Math.random() - 0.5) * (C.TABLE_WIDTH - 1);
     const y = C.DROP_Y;
     const z = C.DROP_Z;
-    this.itemManager.spawnItem(itemDef, x, y, z);
+    const item = this.itemManager.spawnItem(itemDef, x, y, z);
+    // Track bob-ombs for countdown
+    if (itemTypeId === 'bob_omb' && item) {
+      this.activeBobOmbs.push({ itemId: item.id, spawnTime: Date.now() });
+    }
     return true;
   }
 

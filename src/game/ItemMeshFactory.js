@@ -214,6 +214,114 @@ function createPoisonMushroom() {
   return createMushroom(0x800080); // purple cap
 }
 
+// ── Bob-omb 💣 ──
+function createBobOmb() {
+  const group = new THREE.Group();
+
+  // Body (black sphere)
+  const bodyGeo = getOrCreate('bomb_body', () => new THREE.SphereGeometry(0.3, 12, 10));
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x222222, metalness: 0.3, roughness: 0.6,
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.3;
+  body.castShadow = true;
+  group.add(body);
+
+  // Eyes (white + black pupil)
+  const eyeGeo = getOrCreate('bomb_eye', () => new THREE.SphereGeometry(0.08, 8, 6));
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const pupilGeo = getOrCreate('bomb_pupil', () => new THREE.SphereGeometry(0.04, 6, 4));
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(eyeGeo, eyeMat);
+    eye.position.set(side * 0.12, 0.35, 0.25);
+    group.add(eye);
+    const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+    pupil.position.set(side * 0.12, 0.35, 0.3);
+    group.add(pupil);
+  }
+
+  // Fuse (brown cylinder on top)
+  const fuseGeo = getOrCreate('bomb_fuse', () => new THREE.CylinderGeometry(0.02, 0.03, 0.2, 6));
+  const fuseMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, metalness: 0.1, roughness: 0.8 });
+  const fuse = new THREE.Mesh(fuseGeo, fuseMat);
+  fuse.position.set(0, 0.6, 0);
+  fuse.rotation.z = 0.3;
+  group.add(fuse);
+
+  // Spark (red/orange emissive sphere at fuse tip)
+  const sparkGeo = getOrCreate('bomb_spark', () => new THREE.SphereGeometry(0.04, 6, 4));
+  const sparkMat = new THREE.MeshStandardMaterial({
+    color: 0xff4500, emissive: 0xff4500, emissiveIntensity: 1.0,
+  });
+  const spark = new THREE.Mesh(sparkGeo, sparkMat);
+  spark.position.set(0.06, 0.7, 0);
+  group.add(spark);
+
+  // Feet (two small yellow cylinders)
+  const footGeo = getOrCreate('bomb_foot', () => new THREE.CylinderGeometry(0.06, 0.08, 0.1, 8));
+  const footMat = new THREE.MeshStandardMaterial({ color: 0xfbd000, metalness: 0.1, roughness: 0.7 });
+  for (const side of [-1, 1]) {
+    const foot = new THREE.Mesh(footGeo, footMat);
+    foot.position.set(side * 0.15, 0.05, 0.1);
+    group.add(foot);
+  }
+
+  // Wind-up key (gold torus on back)
+  const keyGeo = getOrCreate('bomb_key', () => new THREE.TorusGeometry(0.08, 0.02, 6, 12));
+  const keyMat = new THREE.MeshStandardMaterial({ color: 0xfbd000, metalness: 0.6, roughness: 0.3 });
+  const key = new THREE.Mesh(keyGeo, keyMat);
+  key.position.set(0, 0.35, -0.3);
+  key.rotation.y = Math.PI / 2;
+  group.add(key);
+
+  return group;
+}
+
+// ── Magnet Mushroom 🧲 ──
+function createMagnetMushroom() {
+  const group = new THREE.Group();
+
+  // Blue cap (half sphere)
+  const capGeo = getOrCreate('mush_cap', () => new THREE.SphereGeometry(0.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2));
+  const capMat = new THREE.MeshStandardMaterial({
+    color: 0x4444ff, metalness: 0.15, roughness: 0.65,
+    emissive: 0x2222aa, emissiveIntensity: 0.15,
+  });
+  const cap = new THREE.Mesh(capGeo, capMat);
+  cap.position.y = 0.2;
+  cap.castShadow = true;
+  group.add(cap);
+
+  // Magnet symbol on cap — horseshoe shape (half torus + 2 legs)
+  const magnetGeo = getOrCreate('magnet_arc', () => new THREE.TorusGeometry(0.1, 0.025, 6, 12, Math.PI));
+  const magnetMat = new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.3, roughness: 0.5 });
+  const arc = new THREE.Mesh(magnetGeo, magnetMat);
+  arc.position.set(0, 0.38, 0.15);
+  arc.rotation.x = -0.3;
+  group.add(arc);
+
+  // Magnet poles (silver tips)
+  const poleGeo = getOrCreate('magnet_pole', () => new THREE.BoxGeometry(0.05, 0.08, 0.05));
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.5, roughness: 0.3 });
+  for (const side of [-1, 1]) {
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.set(side * 0.1, 0.32, 0.2);
+    group.add(pole);
+  }
+
+  // Stem
+  const stemGeo = getOrCreate('mush_stem', () => new THREE.CylinderGeometry(0.12, 0.15, 0.2, 12));
+  const stemMat = new THREE.MeshStandardMaterial({ color: 0xfff5e6, metalness: 0, roughness: 0.9 });
+  const stem = new THREE.Mesh(stemGeo, stemMat);
+  stem.position.y = 0.1;
+  stem.castShadow = true;
+  group.add(stem);
+
+  return group;
+}
+
 // ═══════════ PUBLIC API ═══════════
 
 const CREATORS = {
@@ -224,6 +332,8 @@ const CREATORS = {
   fire_flower: createFireFlower,
   green_pipe: createGreenPipe,
   poison_mushroom: createPoisonMushroom,
+  bob_omb: createBobOmb,
+  magnet_mushroom: createMagnetMushroom,
 };
 
 export class ItemMeshFactory {

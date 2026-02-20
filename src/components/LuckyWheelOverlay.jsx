@@ -7,8 +7,8 @@ const SLICE_COLORS = [
 ];
 
 const PRIZE_LABELS_ZH = {
-  coins_10: '10 金幣',
-  coins_25: '25 金幣',
+  bob_omb: '炸彈兵',
+  magnet: '磁鐵蘑菇',
   coins_50: '50 金幣',
   star_item: '超級星星',
   mushroom: '蘑菇',

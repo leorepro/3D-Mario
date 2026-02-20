@@ -238,6 +238,23 @@ export class AudioManager {
     setTimeout(() => this._playTone(1320, 0.25, 'sine', 0.2), 200);
   }
 
+  /** Bob-omb explosion — heavy boom */
+  playBobOmbExplode() {
+    this._playTone(100, 0.3, 'sawtooth', 0.3);
+    this._playNoise(0.4, 0.2);
+    setTimeout(() => this._playTone(60, 0.25, 'sine', 0.25), 50);
+    [500, 400, 300, 200].forEach((f, i) => {
+      setTimeout(() => this._playTone(f, 0.08, 'triangle', 0.1), 100 + i * 40);
+    });
+  }
+
+  /** Magnet mushroom activated — electromagnetic hum */
+  playMagnetActivate() {
+    this._playTone(220, 0.2, 'sine', 0.15);
+    setTimeout(() => this._playTone(440, 0.3, 'sine', 0.12), 100);
+    setTimeout(() => this._playTone(330, 0.25, 'triangle', 0.1), 200);
+  }
+
   /** Lakitu appears — warning siren descending */
   playLakituAppear() {
     // Descending warning tones
