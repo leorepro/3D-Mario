@@ -15,6 +15,8 @@ const PRIZE_LABELS_ZH = {
   fire: '火焰花',
   frenzy: '狂熱！',
   coin_pipe: '金幣雨管道',
+  diamond_coin: '鑽石金幣',
+  giant_bob_omb: '巨型炸彈兵',
 };
 
 const wheel = new LuckyWheel();

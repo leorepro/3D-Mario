@@ -361,6 +361,136 @@ function createCoinPipe() {
   return group;
 }
 
+// ── Diamond Coin 💎 ──
+function createDiamondCoin() {
+  const group = new THREE.Group();
+
+  // Diamond shape — octahedron
+  const geo = getOrCreate('diamond_geo', () => new THREE.OctahedronGeometry(0.35, 0));
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x00bfff,
+    metalness: 0.9,
+    roughness: 0.1,
+    emissive: 0x0088cc,
+    emissiveIntensity: 0.3,
+    transparent: true,
+    opacity: 0.85,
+  });
+  const diamond = new THREE.Mesh(geo, mat);
+  diamond.position.y = 0.35;
+  diamond.castShadow = true;
+  group.add(diamond);
+
+  // Inner glow sphere
+  const glowGeo = getOrCreate('diamond_glow', () => new THREE.SphereGeometry(0.15, 12, 8));
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.4,
+  });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.y = 0.35;
+  group.add(glow);
+
+  // Small sparkle points around the diamond
+  const sparkGeo = getOrCreate('diamond_spark', () => new THREE.SphereGeometry(0.03, 4, 4));
+  const sparkMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const spark = new THREE.Mesh(sparkGeo, sparkMat);
+    spark.position.set(Math.cos(angle) * 0.28, 0.35, Math.sin(angle) * 0.28);
+    group.add(spark);
+  }
+
+  return group;
+}
+
+// ── Giant Bob-omb 💣💥 ──
+function createGiantBobOmb() {
+  const group = new THREE.Group();
+
+  // Body (large black sphere — 1.5x normal bob-omb)
+  const bodyGeo = getOrCreate('gbomb_body', () => new THREE.SphereGeometry(0.45, 16, 12));
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x111111, metalness: 0.4, roughness: 0.5,
+    emissive: 0x330000, emissiveIntensity: 0.1,
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.45;
+  body.castShadow = true;
+  group.add(body);
+
+  // Angry eyes (larger, red-tinted)
+  const eyeGeo = getOrCreate('gbomb_eye', () => new THREE.SphereGeometry(0.1, 8, 6));
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const pupilGeo = getOrCreate('gbomb_pupil', () => new THREE.SphereGeometry(0.06, 6, 4));
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(eyeGeo, eyeMat);
+    eye.position.set(side * 0.18, 0.52, 0.38);
+    group.add(eye);
+    const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+    pupil.position.set(side * 0.18, 0.52, 0.44);
+    group.add(pupil);
+  }
+
+  // Angry eyebrows
+  const browGeo = getOrCreate('gbomb_brow', () => new THREE.BoxGeometry(0.15, 0.03, 0.03));
+  const browMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+  for (const side of [-1, 1]) {
+    const brow = new THREE.Mesh(browGeo, browMat);
+    brow.position.set(side * 0.18, 0.62, 0.4);
+    brow.rotation.z = side * 0.4;
+    group.add(brow);
+  }
+
+  // Thick fuse
+  const fuseGeo = getOrCreate('gbomb_fuse', () => new THREE.CylinderGeometry(0.03, 0.05, 0.3, 8));
+  const fuseMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, metalness: 0.1, roughness: 0.8 });
+  const fuse = new THREE.Mesh(fuseGeo, fuseMat);
+  fuse.position.set(0, 0.9, 0);
+  fuse.rotation.z = 0.3;
+  group.add(fuse);
+
+  // Large spark
+  const sparkGeo = getOrCreate('gbomb_spark', () => new THREE.SphereGeometry(0.06, 8, 6));
+  const sparkMat = new THREE.MeshStandardMaterial({
+    color: 0xff4500, emissive: 0xff4500, emissiveIntensity: 1.0,
+  });
+  const spark = new THREE.Mesh(sparkGeo, sparkMat);
+  spark.position.set(0.1, 1.05, 0);
+  group.add(spark);
+
+  // Feet (larger)
+  const footGeo = getOrCreate('gbomb_foot', () => new THREE.CylinderGeometry(0.09, 0.12, 0.12, 8));
+  const footMat = new THREE.MeshStandardMaterial({ color: 0xfbd000, metalness: 0.1, roughness: 0.7 });
+  for (const side of [-1, 1]) {
+    const foot = new THREE.Mesh(footGeo, footMat);
+    foot.position.set(side * 0.22, 0.06, 0.12);
+    group.add(foot);
+  }
+
+  // Wind-up key (larger gold torus on back)
+  const keyGeo = getOrCreate('gbomb_key', () => new THREE.TorusGeometry(0.12, 0.03, 8, 12));
+  const keyMat = new THREE.MeshStandardMaterial({ color: 0xfbd000, metalness: 0.6, roughness: 0.3 });
+  const key = new THREE.Mesh(keyGeo, keyMat);
+  key.position.set(0, 0.5, -0.45);
+  key.rotation.y = Math.PI / 2;
+  group.add(key);
+
+  // Red warning glow ring around base
+  const ringGeo = getOrCreate('gbomb_ring', () => new THREE.TorusGeometry(0.5, 0.02, 8, 24));
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xff0000, transparent: true, opacity: 0.6,
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.y = 0.02;
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+
+  return group;
+}
+
 // ═══════════ PUBLIC API ═══════════
 
 const CREATORS = {
@@ -374,6 +504,8 @@ const CREATORS = {
   bob_omb: createBobOmb,
   magnet_mushroom: createMagnetMushroom,
   coin_pipe: createCoinPipe,
+  diamond_coin: createDiamondCoin,
+  giant_bob_omb: createGiantBobOmb,
 };
 
 export class ItemMeshFactory {

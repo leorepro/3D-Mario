@@ -1910,6 +1910,28 @@ export class Renderer3D {
             child.material.emissiveIntensity = pulse;
           }
         });
+      } else if (item.type === 'diamond_coin') {
+        // Spin slowly + pulsing glow
+        mesh.rotation.y = this._time * 2;
+        const glow = 0.3 + Math.sin(this._time * 3) * 0.2;
+        mesh.traverse((child) => {
+          if (child.isMesh && child.material && child.material.emissiveIntensity !== undefined) {
+            child.material.emissiveIntensity = glow;
+          }
+        });
+      } else if (item.type === 'giant_bob_omb') {
+        // Blink faster + slight shake as fuse burns
+        const blinkSpeed = 4 + this._time * 0.8;
+        const blink = Math.sin(this._time * blinkSpeed) > 0;
+        const shake = Math.sin(this._time * 20) * 0.02;
+        mesh.position.x += shake;
+        mesh.traverse((child) => {
+          if (child.isMesh && child.material && child.material.color &&
+              child.material.color.r < 0.15 && child.material.color.g < 0.15 && child.material.color.b < 0.15) {
+            child.material.emissive?.setHex(blink ? 0xff0000 : 0x330000);
+            child.material.emissiveIntensity = blink ? 0.8 : 0.1;
+          }
+        });
       }
     }
 

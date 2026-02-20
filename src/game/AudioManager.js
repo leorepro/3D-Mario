@@ -188,6 +188,14 @@ export class AudioManager {
         setTimeout(() => this._playTone(220, 0.2, 'sawtooth', 0.15), 160);
         break;
 
+      case 'diamond_coin':
+        this.playDiamondCoinCollect();
+        break;
+
+      case 'giant_bob_omb':
+        this.playGiantBobOmbExplode();
+        break;
+
       default:
         this.playCoinCollected();
     }
@@ -259,6 +267,25 @@ export class AudioManager {
   playCoinRainStart() {
     [660, 880, 1100, 1320, 1760].forEach((f, i) => {
       setTimeout(() => this._playTone(f, 0.12, 'sine', 0.2), i * 60);
+    });
+  }
+
+  /** Diamond coin collected — crystalline sparkle */
+  playDiamondCoinCollect() {
+    [1320, 1760, 2200, 2640].forEach((f, i) => {
+      setTimeout(() => this._playTone(f, 0.15, 'sine', 0.2), i * 50);
+    });
+    this._playNoise(0.1, 0.05);
+  }
+
+  /** Giant Bob-omb explosion — earth-shaking boom */
+  playGiantBobOmbExplode() {
+    this._playTone(60, 0.5, 'sawtooth', 0.35);
+    this._playNoise(0.6, 0.25);
+    setTimeout(() => this._playTone(40, 0.4, 'sine', 0.3), 50);
+    setTimeout(() => this._playTone(80, 0.3, 'sawtooth', 0.25), 100);
+    [600, 500, 400, 300, 200, 100].forEach((f, i) => {
+      setTimeout(() => this._playTone(f, 0.1, 'triangle', 0.12), 150 + i * 40);
     });
   }
 

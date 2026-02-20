@@ -93,6 +93,7 @@ export class GameEngine {
 
     // Bob-omb tracking
     this.activeBobOmbs = []; // { itemId, spawnTime }
+    this.activeGiantBobOmbs = []; // { itemId, spawnTime }
 
     // Magnet effect
     this.magnetActive = false;
@@ -173,6 +174,9 @@ export class GameEngine {
 
     // Update Bob-ombs
     this.updateBobOmbs();
+
+    // Update Giant Bob-ombs
+    this.updateGiantBobOmbs();
 
     // Update magnet effect
     this.updateMagnet();
@@ -488,6 +492,34 @@ export class GameEngine {
         }, this);
         break;
       }
+
+      case 'diamond_score': {
+        // Diamond Coin — high-value instant score + cyan burst
+        const value = def.effect.scoreValue || 50;
+        const scale = this.levelSystem.getDifficultyScale();
+        const finalScore = Math.floor(value * this.scoreMultiplier * scale.coinMult);
+        this.callbacks.onCoinCollected?.(finalScore, { chain: 0, multiplier: 1, newTier: false });
+        this.levelSystem.addXP(10);
+        this.audio.playDiamondCoinCollect();
+        // Cyan + white sparkle burst
+        this.renderer.emitParticles(
+          { x: pos.x, y: pos.y, z: pos.z },
+          { count: 30, color: 0x00bfff, speed: 6 }
+        );
+        this.renderer.emitParticles(
+          { x: pos.x, y: pos.y + 0.5, z: pos.z },
+          { count: 15, color: 0xffffff, speed: 4 }
+        );
+        break;
+      }
+
+      case 'giant_bob_omb': {
+        // Giant Bob-omb collected from front edge — massive reward explosion!
+        const bPos = item.body.position;
+        this._giantBobOmbExplode(bPos, true);
+        this.activeGiantBobOmbs = (this.activeGiantBobOmbs || []).filter(b => b.itemId !== item.id);
+        break;
+      }
     }
 
     // Check achievements after item collection
@@ -770,6 +802,88 @@ export class GameEngine {
     }
   }
 
+  // ─── Giant Bob-omb countdown ───
+  updateGiantBobOmbs() {
+    if (!this.activeGiantBobOmbs || this.activeGiantBobOmbs.length === 0) return;
+    const now = Date.now();
+
+    for (let i = this.activeGiantBobOmbs.length - 1; i >= 0; i--) {
+      const entry = this.activeGiantBobOmbs[i];
+      const elapsed = now - entry.spawnTime;
+
+      const item = this.itemManager.getItems().find(it => it.id === entry.itemId);
+      if (!item) {
+        this.activeGiantBobOmbs.splice(i, 1);
+        continue;
+      }
+
+      if (elapsed >= C.GIANT_BOBOMB_FUSE_MS) {
+        const pos = item.body.position;
+        this._giantBobOmbExplode(pos, false);
+        this.itemManager.removeItem(item);
+        this.activeGiantBobOmbs.splice(i, 1);
+      }
+    }
+  }
+
+  _giantBobOmbExplode(pos, isReward) {
+    const force = isReward ? C.GIANT_BOBOMB_PUSH_FORCE : C.GIANT_BOBOMB_SCATTER_FORCE;
+    const particleColor = isReward ? 0xffc107 : 0xff0000;
+
+    // Massive explosion particles (4 layers)
+    this.renderer.emitParticles(
+      { x: pos.x, y: pos.y, z: pos.z },
+      { count: 80, color: particleColor, speed: 10 }
+    );
+    this.renderer.emitParticles(
+      { x: pos.x, y: pos.y + 0.5, z: pos.z },
+      { count: 50, color: 0xff0000, speed: 8 }
+    );
+    this.renderer.emitParticles(
+      { x: pos.x, y: pos.y + 1, z: pos.z },
+      { count: 40, color: 0xff6600, speed: 9 }
+    );
+    this.renderer.emitParticles(
+      { x: pos.x, y: pos.y + 1.5, z: pos.z },
+      { count: 30, color: 0xffff00, speed: 6 }
+    );
+
+    this.audio.playGiantBobOmbExplode();
+
+    // Affect ALL coins in huge blast radius
+    const coins = this.coinManager.getCoins();
+    for (const coin of coins) {
+      const cp = coin.body.position;
+      const dx = cp.x - pos.x;
+      const dy = cp.y - pos.y;
+      const dz = cp.z - pos.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (dist < C.GIANT_BOBOMB_BLAST_RADIUS && dist > 0.01) {
+        coin.body.wakeUp();
+        if (isReward) {
+          coin.body.velocity.set(dx * 0.8, 3, force);
+        } else {
+          const scale = force / dist;
+          coin.body.velocity.set(dx * scale, 4, dz * scale);
+        }
+      }
+    }
+
+    // Also push items
+    const items = this.itemManager.getItems();
+    for (const it of items) {
+      const ip = it.body.position;
+      const dx = ip.x - pos.x;
+      const dz = ip.z - pos.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < C.GIANT_BOBOMB_BLAST_RADIUS && dist > 0.01) {
+        it.body.wakeUp();
+        it.body.velocity.set(dx * 2, 3, dz * 2);
+      }
+    }
+  }
+
   // ─── Magnet effect ───
   updateMagnet() {
     if (!this.magnetActive) return;
@@ -817,6 +931,13 @@ export class GameEngine {
       const spawned = this.itemManager.trySpawnItem(unlockedItems, totalObjects);
       if (spawned) {
         this.eventBus.emit('item:spawned', { itemType: spawned.type });
+        // Track bob-ombs for countdown
+        if (spawned.type === 'bob_omb') {
+          this.activeBobOmbs.push({ itemId: spawned.id, spawnTime: Date.now() });
+        }
+        if (spawned.type === 'giant_bob_omb') {
+          this.activeGiantBobOmbs.push({ itemId: spawned.id, spawnTime: Date.now() });
+        }
       }
 
       // Random frenzy chance
@@ -854,6 +975,9 @@ export class GameEngine {
     // Track bob-ombs for countdown
     if (itemTypeId === 'bob_omb' && item) {
       this.activeBobOmbs.push({ itemId: item.id, spawnTime: Date.now() });
+    }
+    if (itemTypeId === 'giant_bob_omb' && item) {
+      this.activeGiantBobOmbs.push({ itemId: item.id, spawnTime: Date.now() });
     }
     return true;
   }

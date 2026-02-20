@@ -158,6 +158,16 @@ export const ITEM_TYPES = {
     physics: 'cylinder', physicsRadius: 0.3, physicsHeight: 0.5, color: 0xffd700, minLevel: 1,
     effect: { type: 'coin_rain', count: 15, duration: 3000 },
   },
+  diamond_coin: {
+    id: 'diamond_coin', label: 'Diamond Coin', spawnRate: 0, mass: 0.5,
+    physics: 'sphere', physicsRadius: 0.35, color: 0x00bfff, minLevel: 25,
+    effect: { type: 'diamond_score', scoreValue: 50 },
+  },
+  giant_bob_omb: {
+    id: 'giant_bob_omb', label: 'Giant Bob-omb', spawnRate: 0, mass: 3.0,
+    physics: 'sphere', physicsRadius: 0.5, color: 0x111111, minLevel: 28,
+    effect: { type: 'giant_bob_omb' },
+  },
 };
 
 // ── Bob-omb ──
@@ -165,6 +175,12 @@ export const BOBOMB_FUSE_MS = 5000;
 export const BOBOMB_BLAST_RADIUS = 6.0;
 export const BOBOMB_PUSH_FORCE = 8;
 export const BOBOMB_SCATTER_FORCE = 6;
+
+// ── Giant Bob-omb ──
+export const GIANT_BOBOMB_FUSE_MS = 7000;
+export const GIANT_BOBOMB_BLAST_RADIUS = 10.0;
+export const GIANT_BOBOMB_PUSH_FORCE = 12;
+export const GIANT_BOBOMB_SCATTER_FORCE = 10;
 
 // ══════════════════════════════════════
 // ── P3: Level System ──
