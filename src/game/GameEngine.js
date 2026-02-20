@@ -542,7 +542,7 @@ export class GameEngine {
 
     switch (this.lakituState) {
       case 'idle':
-        if (now >= this.lakituNextTime && this.coinManager.getCoinCount() >= C.LAKITU_COINS_TO_STEAL) {
+        if (now >= this.lakituNextTime && this.coinManager.getCoinCount() >= 5) {
           this.lakituState = 'flying_in';
           this.lakituPhaseStart = now;
           this.renderer.showLakitu();
@@ -591,10 +591,12 @@ export class GameEngine {
 
   _lakituStealCoins() {
     const coins = this.coinManager.getCoins();
-    const count = Math.min(C.LAKITU_COINS_TO_STEAL, coins.length);
+    // Random steal count: 5-50 coins
+    const stealTarget = 5 + Math.floor(Math.random() * 46);
+    const count = Math.min(stealTarget, coins.length);
     if (count <= 0) return;
 
-    // Pick random coins to steal
+    // Pick random coins to steal and remove from table
     const toSteal = [...coins].sort(() => Math.random() - 0.5).slice(0, count);
     for (const coin of toSteal) {
       const pos = coin.body.position;
