@@ -1766,6 +1766,28 @@ export class Renderer3D {
     this.secondPusherMesh = mesh;
   }
 
+  // ─── Golden Pusher (L50) ───
+  setGoldenPusher() {
+    if (!this.pusherMesh) return;
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      metalness: 0.7,
+      roughness: 0.2,
+      emissive: 0xffa500,
+      emissiveIntensity: 0.3,
+    });
+    // Traverse pusher group and swap all materials to gold
+    this.pusherMesh.traverse((child) => {
+      if (child.isMesh) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map(() => goldMat.clone());
+        } else {
+          child.material = goldMat.clone();
+        }
+      }
+    });
+  }
+
   // ─── Boss Bowser mesh ───
   showBoss() {
     if (this.bossMesh) return;

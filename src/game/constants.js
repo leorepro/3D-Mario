@@ -104,6 +104,15 @@ export const FRENZY_DURATION_MS = 15000;
 export const FRENZY_COIN_INTERVAL_MS = 400;
 export const FRENZY_COINS_PER_TICK = 2;
 
+// ── Mega Frenzy (L45) ──
+export const MEGA_FRENZY_DURATION_MULT = 3;      // 3x normal duration
+export const MEGA_FRENZY_SPEED_MULT = 3;          // 3x pusher speed
+export const MEGA_FRENZY_COINS_PER_TICK = 5;      // 5 coins per tick
+export const MEGA_FRENZY_SCORE_MULT = 2;           // 2x score during mega frenzy
+
+// ── Golden Pusher (L50) ──
+export const GOLDEN_PUSHER_SCORE_MULT = 1.5;      // permanent 1.5x coin score
+
 // ══════════════════════════════════════
 // ── P2: Special Item Types ──
 // ══════════════════════════════════════

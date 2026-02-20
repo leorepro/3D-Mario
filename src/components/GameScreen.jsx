@@ -55,7 +55,7 @@ export function GameScreen() {
     // P2-P4
     level, xpProgress,
     itemEvent, levelEvent, achievementEvent,
-    frenzyActive, frenzyEndTime,
+    frenzyActive, frenzyEndTime, frenzyMega,
     bossActive, bossHP, bossMaxHP, startBoss, abortBoss, canBoss,
     lakituEvent, bulletBillEvent, thwompEvent, lowGravityActive,
     bossRushWave, canBossRush, startBossRush,
@@ -119,7 +119,7 @@ export function GameScreen() {
           <BulletBillPopup bulletBillEvent={bulletBillEvent} />
           <ThwompPopup thwompEvent={thwompEvent} />
           <LowGravityPopup active={lowGravityActive} />
-          <FrenzyOverlay frenzyActive={frenzyActive} frenzyEndTime={frenzyEndTime} />
+          <FrenzyOverlay frenzyActive={frenzyActive} frenzyEndTime={frenzyEndTime} isMega={frenzyMega} />
           <BossOverlay
             bossActive={bossActive}
             bossHP={bossHP}

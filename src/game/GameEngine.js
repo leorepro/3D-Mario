@@ -118,6 +118,9 @@ export class GameEngine {
     this.bossRushActive = false;
     this.bossRushWave = 0;
 
+    // Golden Pusher state (L50)
+    this.goldenPusherActive = false;
+
     // Listen for boss:defeated to handle boss rush wave progression
     this.eventBus.on('boss:defeated', () => {
       if (this.bossRushActive) {
@@ -153,6 +156,11 @@ export class GameEngine {
     // Create second pusher if dual_pusher unlocked (L35+)
     if (this.levelSystem.getUnlockedItemTypes().includes('dual_pusher') && !this.secondPusher) {
       this._createSecondPusher();
+    }
+
+    // Apply golden pusher if unlocked (L50+)
+    if (this.levelSystem.getUnlockedItemTypes().includes('golden_pusher') && !this.goldenPusherActive) {
+      this._activateGoldenPusher();
     }
 
     this.loop();
@@ -563,8 +571,14 @@ export class GameEngine {
 
   // ─── Frenzy ───
   startFrenzy(duration) {
-    const dur = duration || C.FRENZY_DURATION_MS;
+    // Check if Mega Frenzy is unlocked (L45+)
+    const isMega = this.levelSystem.getUnlockedItemTypes().includes('mega_frenzy');
+    const baseDur = duration || C.FRENZY_DURATION_MS;
+    const dur = isMega ? baseDur * C.MEGA_FRENZY_DURATION_MULT : baseDur;
+    const speedMult = isMega ? C.MEGA_FRENZY_SPEED_MULT : 2;
+
     this.frenzyActive = true;
+    this.frenzyMega = isMega;
     this.frenzyEndTime = Date.now() + dur;
     this.frenzyLastCoinTime = 0;
 
@@ -572,13 +586,13 @@ export class GameEngine {
     this.haptic.frenzy();
     this.saveManager.setFrenzyTriggered();
 
-    // Speed up pusher during frenzy (2x on top of difficulty scaling)
+    // Speed up pusher during frenzy
     const frenzyScale = this.levelSystem.getDifficultyScale();
     this.effectManager.addEffect({
       type: 'frenzy_speed',
       duration: dur,
       apply: (engine) => {
-        engine.pusher.setSpeed(C.PUSHER_SPEED * frenzyScale.pusherSpeed * 2);
+        engine.pusher.setSpeed(C.PUSHER_SPEED * frenzyScale.pusherSpeed * speedMult);
       },
       remove: (engine) => {
         const curScale = engine.levelSystem.getDifficultyScale();
@@ -586,8 +600,18 @@ export class GameEngine {
       },
     }, this);
 
-    this.eventBus.emit('frenzy:start', { duration: dur });
-    this.callbacks.onFrenzyStart?.(dur);
+    // Mega Frenzy: also apply score multiplier
+    if (isMega) {
+      this.effectManager.addEffect({
+        type: 'mega_frenzy_score',
+        duration: dur,
+        apply: (engine) => { engine.scoreMultiplier *= C.MEGA_FRENZY_SCORE_MULT; },
+        remove: (engine) => { engine.scoreMultiplier = Math.max(1, engine.scoreMultiplier / C.MEGA_FRENZY_SCORE_MULT); },
+      }, this);
+    }
+
+    this.eventBus.emit('frenzy:start', { duration: dur, mega: isMega });
+    this.callbacks.onFrenzyStart?.(dur, isMega);
   }
 
   updateFrenzy() {
@@ -596,15 +620,17 @@ export class GameEngine {
     const now = Date.now();
     if (now >= this.frenzyEndTime) {
       this.frenzyActive = false;
+      this.frenzyMega = false;
       this.eventBus.emit('frenzy:end');
       this.callbacks.onFrenzyEnd?.();
       return;
     }
 
-    // Rain coins during frenzy
+    // Rain coins during frenzy (more during Mega Frenzy)
     if (now - this.frenzyLastCoinTime >= C.FRENZY_COIN_INTERVAL_MS) {
       this.frenzyLastCoinTime = now;
-      for (let i = 0; i < C.FRENZY_COINS_PER_TICK; i++) {
+      const coinsPerTick = this.frenzyMega ? C.MEGA_FRENZY_COINS_PER_TICK : C.FRENZY_COINS_PER_TICK;
+      for (let i = 0; i < coinsPerTick; i++) {
         const x = (Math.random() - 0.5) * (C.TABLE_WIDTH - 1);
         this.coinManager.spawnCoin(x, C.DROP_Y + Math.random() * 2, C.DROP_Z + Math.random());
       }
@@ -926,6 +952,14 @@ export class GameEngine {
     this.renderer.createSecondPusherMesh(
       C.PUSHER_WIDTH * 0.7, C.PUSHER_HEIGHT, C.PUSHER_DEPTH * 0.8
     );
+  }
+
+  // ─── Golden Pusher (L50) ───
+  _activateGoldenPusher() {
+    if (this.goldenPusherActive) return;
+    this.goldenPusherActive = true;
+    this.scoreMultiplier *= C.GOLDEN_PUSHER_SCORE_MULT;
+    this.renderer.setGoldenPusher();
   }
 
   // ─── Boss Rush (L38) ───

@@ -31,6 +31,7 @@ export function useGameEngine(containerRef) {
   const [achievementEvent, setAchievementEvent] = useState(null);
   const [frenzyActive, setFrenzyActive] = useState(false);
   const [frenzyEndTime, setFrenzyEndTime] = useState(0);
+  const [frenzyMega, setFrenzyMega] = useState(false);
   const [bossActive, setBossActive] = useState(false);
   const [bossHP, setBossHP] = useState(0);
   const [bossMaxHP, setBossMaxHP] = useState(100);
@@ -86,12 +87,14 @@ export function useGameEngine(containerRef) {
       onCoinLost: () => {
         // Coin lost — no score change
       },
-      onFrenzyStart: (duration) => {
+      onFrenzyStart: (duration, isMega) => {
         setFrenzyActive(true);
         setFrenzyEndTime(Date.now() + duration);
+        setFrenzyMega(!!isMega);
       },
       onFrenzyEnd: () => {
         setFrenzyActive(false);
+        setFrenzyMega(false);
       },
       onBossStart: ({ hp, maxHp, wave, totalWaves }) => {
         setBossActive(true);
@@ -180,6 +183,10 @@ export function useGameEngine(containerRef) {
       // Create dual pusher on reaching L35
       if (data.newLevel >= 35 && !engine.secondPusher) {
         engine._createSecondPusher();
+      }
+      // Activate golden pusher on reaching L50
+      if (data.newLevel >= 50 && !engine.goldenPusherActive) {
+        engine._activateGoldenPusher();
       }
       // Update unlocked scenes
       setUnlockedScenes(engine.levelSystem.getUnlockedScenes());
@@ -385,6 +392,7 @@ export function useGameEngine(containerRef) {
     achievementEvent,
     frenzyActive,
     frenzyEndTime,
+    frenzyMega,
     bossActive,
     bossHP,
     bossMaxHP,
