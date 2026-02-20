@@ -3,7 +3,7 @@ import { COIN_SIZES } from '../game/constants.js';
 
 export function ActionBar({
   coinBalance, onDrop, autoDropping, onToggleAutoDrop,
-  audioEnabled, onToggleAudio,
+  audioMode = 'all', onToggleAudio,
   onOpenSettings, onOpenLeaderboard,
   canBoss, onStartBoss, bossActive,
   canBossRush, onStartBossRush,
@@ -89,9 +89,9 @@ export function ActionBar({
         onClick={onToggleAudio}
         className="px-2 py-2 rounded-xl text-base cursor-pointer
                    active:scale-95 transition-transform bg-white/10 hover:bg-white/20"
-        title={audioEnabled ? '靜音' : '開啟聲音'}
+        title={audioMode === 'all' ? '全部音效' : audioMode === 'sfx_only' ? '僅特效音效' : '靜音'}
       >
-        {audioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'}
+        {audioMode === 'all' ? '\uD83D\uDD0A' : audioMode === 'sfx_only' ? '\uD83C\uDFB5' : '\uD83D\uDD07'}
       </button>
 
       <button

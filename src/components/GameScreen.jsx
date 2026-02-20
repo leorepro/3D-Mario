@@ -51,7 +51,7 @@ export function GameScreen() {
     score, coinBalance, dropCoin, setDropX, engineRef,
     autoDropping, toggleAutoDrop,
     chainEvent, chain, multiplier,
-    audioEnabled, toggleAudio,
+    audioMode, toggleAudio,
     // P2-P4
     level, xpProgress,
     itemEvent, levelEvent, achievementEvent,
@@ -134,7 +134,7 @@ export function GameScreen() {
           onDrop={dropCoin}
           autoDropping={autoDropping}
           onToggleAutoDrop={toggleAutoDrop}
-          audioEnabled={audioEnabled}
+          audioMode={audioMode}
           onToggleAudio={toggleAudio}
           onOpenSettings={() => setSettingsVisible(true)}
           onOpenLeaderboard={() => setLeaderboardVisible(true)}

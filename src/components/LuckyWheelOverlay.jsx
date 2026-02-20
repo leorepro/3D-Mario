@@ -113,31 +113,36 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
               ).join(', ')})`,
             }}
           >
-            {/* Slot labels */}
+            {/* Slot labels — radial text along each slice */}
             {slots.map((slot, i) => {
               const sliceAngle = 360 / slots.length;
               const midAngle = i * sliceAngle + sliceAngle / 2;
-              const radius = 70;
-              const rad = ((midAngle - 90) * Math.PI) / 180;
-              const x = 120 + Math.cos(rad) * radius;
-              const y = 120 + Math.sin(rad) * radius;
               const label = PRIZE_LABELS_ZH[slot.id] || slot.label;
-              const textRotation = midAngle;
 
               return (
                 <div
                   key={i}
                   className="absolute font-bold text-white pointer-events-none"
                   style={{
-                    left: `${x}px`,
-                    top: `${y}px`,
-                    fontSize: '13px',
-                    transform: `translate(-50%, -50%) rotate(${textRotation}deg)`,
-                    textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)',
-                    whiteSpace: 'nowrap',
+                    left: '120px',
+                    top: '120px',
+                    transform: `rotate(${midAngle}deg)`,
+                    transformOrigin: '0 0',
                   }}
                 >
-                  {label}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '20px',
+                      top: '-7px',
+                      fontSize: '11px',
+                      letterSpacing: '1px',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {label.split('').join(' ')}
+                  </div>
                 </div>
               );
             })}

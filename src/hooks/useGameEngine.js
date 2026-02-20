@@ -18,7 +18,7 @@ export function useGameEngine(containerRef) {
   const [chainEvent, setChainEvent] = useState(null);
   const [chain, setChain] = useState(0);
   const [multiplier, setMultiplier] = useState(1);
-  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [audioMode, setAudioMode] = useState('all'); // 'all' | 'sfx_only' | 'off'
   const autoDropRef = useRef(null);
   const coinBalanceRef = useRef(coinBalance);
 
@@ -329,8 +329,8 @@ export function useGameEngine(containerRef) {
   }, []);
 
   const toggleAudio = useCallback(() => {
-    const enabled = engineRef.current?.toggleAudio();
-    setAudioEnabled(enabled ?? true);
+    const mode = engineRef.current?.toggleAudio();
+    setAudioMode(mode ?? 'all');
   }, []);
 
   const startBoss = useCallback(() => {
@@ -381,7 +381,7 @@ export function useGameEngine(containerRef) {
     chainEvent,
     chain,
     multiplier,
-    audioEnabled,
+    audioMode,
     toggleAudio,
     // P2-P4
     level,

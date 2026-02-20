@@ -9,6 +9,8 @@ export class AudioManager {
     this.ctx = null;       // AudioContext (lazy init on first user gesture)
     this.masterGain = null;
     this.enabled = true;
+    this.mode = 'all';     // 'all' | 'sfx_only' | 'off'
+    this.muteCoins = false; // true when mode === 'sfx_only'
   }
 
   /** Lazily initialise AudioContext (must be after user gesture) */
@@ -89,18 +91,21 @@ export class AudioManager {
 
   /** Coin drop — bright "ding" */
   playCoinDrop() {
+    if (this.muteCoins) return;
     this._playTone(1200, 0.15, 'sine', 0.25);
     this._playTone(1800, 0.1, 'sine', 0.1);
   }
 
   /** Coin-to-coin collision — soft metallic tap */
   playCoinCollide() {
+    if (this.muteCoins) return;
     this._playNoise(0.05, 0.06);
     this._playTone(800 + Math.random() * 400, 0.06, 'triangle', 0.08);
   }
 
   /** Coin collected (fell off front edge) — happy ascending chime */
   playCoinCollected() {
+    if (this.muteCoins) return;
     this._playTone(880, 0.12, 'sine', 0.3);
     setTimeout(() => this._playTone(1100, 0.12, 'sine', 0.25), 60);
     setTimeout(() => this._playTone(1320, 0.18, 'sine', 0.2), 120);
@@ -108,6 +113,7 @@ export class AudioManager {
 
   /** Coin lost (fell off side/back) — low thud */
   playCoinLost() {
+    if (this.muteCoins) return;
     this._playTone(200, 0.15, 'triangle', 0.12);
   }
 
@@ -380,8 +386,21 @@ export class AudioManager {
   }
 
   toggle() {
-    this.enabled = !this.enabled;
-    return this.enabled;
+    // Cycle: all → sfx_only → off → all
+    if (this.mode === 'all') {
+      this.mode = 'sfx_only';
+      this.enabled = true;
+      this.muteCoins = true;
+    } else if (this.mode === 'sfx_only') {
+      this.mode = 'off';
+      this.enabled = false;
+      this.muteCoins = true;
+    } else {
+      this.mode = 'all';
+      this.enabled = true;
+      this.muteCoins = false;
+    }
+    return this.mode;
   }
 
   destroy() {
