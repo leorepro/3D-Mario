@@ -48,6 +48,16 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
     }
   }, [visible, spinning, result]);
 
+  // Auto-claim after 2 seconds if user doesn't click
+  useEffect(() => {
+    if (result && visible) {
+      const timer = setTimeout(() => {
+        onClose?.();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [result, visible, onClose]);
+
   const doSpin = useCallback(() => {
     if (spinning) return;
     setSpinning(true);
