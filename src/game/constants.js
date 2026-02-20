@@ -170,6 +170,7 @@ export const BOBOMB_SCATTER_FORCE = 6;
 // ── P3: Level System ──
 // ══════════════════════════════════════
 export const LEVEL_THRESHOLDS = [
+  // L1-L20 (existing)
   { level: 1, xp: 0 },     { level: 2, xp: 20 },
   { level: 3, xp: 50 },    { level: 4, xp: 100 },
   { level: 5, xp: 150 },   { level: 6, xp: 220 },
@@ -180,18 +181,109 @@ export const LEVEL_THRESHOLDS = [
   { level: 15, xp: 1800 }, { level: 16, xp: 2100 },
   { level: 17, xp: 2400 }, { level: 18, xp: 2700 },
   { level: 19, xp: 3000 }, { level: 20, xp: 3500 },
+  // L21-L30 (mid-game)
+  { level: 21, xp: 4060 },  { level: 22, xp: 4690 },
+  { level: 23, xp: 5400 },  { level: 24, xp: 6200 },
+  { level: 25, xp: 7100 },  { level: 26, xp: 8100 },
+  { level: 27, xp: 9200 },  { level: 28, xp: 10400 },
+  { level: 29, xp: 11800 }, { level: 30, xp: 13500 },
+  // L31-L40 (late-game)
+  { level: 31, xp: 15300 }, { level: 32, xp: 17300 },
+  { level: 33, xp: 19500 }, { level: 34, xp: 22000 },
+  { level: 35, xp: 24800 }, { level: 36, xp: 27900 },
+  { level: 37, xp: 31300 }, { level: 38, xp: 35000 },
+  { level: 39, xp: 39000 }, { level: 40, xp: 43500 },
+  // L41-L50 (end-game)
+  { level: 41, xp: 48500 },  { level: 42, xp: 54000 },
+  { level: 43, xp: 60000 },  { level: 44, xp: 66500 },
+  { level: 45, xp: 73500 },  { level: 46, xp: 81000 },
+  { level: 47, xp: 89000 },  { level: 48, xp: 97500 },
+  { level: 49, xp: 106500 }, { level: 50, xp: 116000 },
 ];
 
 export const LEVEL_UNLOCKS = {
   1:  ['question_block', 'star'],
+  2:  ['coin_reward_10'],
   3:  ['mushroom', 'poison_mushroom'],
+  4:  ['coin_reward_15'],
   5:  ['coin_tower', 'green_pipe'],
+  6:  ['coin_reward_20'],
+  7:  ['coin_reward_20'],
   8:  ['fire_flower'],
-  10: ['underground_scene'],
+  9:  ['coin_reward_25'],
+  10: ['underground_scene', 'coin_reward_50'],
+  11: ['coin_reward_25'],
   12: ['castle_scene'],
+  13: ['coin_reward_30'],
+  14: ['coin_reward_30'],
   15: ['boss_mode', 'underwater_scene'],
-  20: ['custom_pusher'],
+  16: ['coin_reward_35'],
+  17: ['coin_reward_35'],
+  18: ['coin_reward_40'],
+  19: ['coin_reward_40'],
+  20: ['custom_pusher', 'starry_night_scene', 'coin_reward_100'],
+  21: ['bob_omb_spawn'],
+  22: ['coin_reward_50'],
+  23: ['magnet_mushroom_spawn'],
+  24: ['coin_reward_50'],
+  25: ['diamond_coin', 'coin_reward_100'],
+  26: ['coin_pipe_spawn'],
+  27: ['coin_reward_60'],
+  28: ['giant_bob_omb'],
+  29: ['coin_reward_75'],
+  30: ['lava_castle_scene', 'thwomp_event', 'coin_reward_150'],
+  31: ['coin_reward_75'],
+  32: ['low_gravity_mode'],
+  33: ['coin_reward_80'],
+  34: ['coin_reward_80'],
+  35: ['dual_pusher', 'coin_reward_150'],
+  36: ['coin_reward_100'],
+  37: ['coin_reward_100'],
+  38: ['boss_rush'],
+  39: ['coin_reward_120'],
+  40: ['rainbow_road_scene', 'coin_reward_200'],
+  41: ['coin_reward_120'],
+  42: ['coin_reward_150'],
+  43: ['coin_reward_150'],
+  44: ['coin_reward_150'],
+  45: ['mega_frenzy', 'coin_reward_200'],
+  46: ['coin_reward_200'],
+  47: ['coin_reward_200'],
+  48: ['coin_reward_250'],
+  49: ['coin_reward_250'],
+  50: ['space_scene', 'golden_pusher', 'coin_reward_500'],
 };
+
+// ── Level Coin Rewards ──
+export const LEVEL_COIN_REWARDS = {
+  2: 10,   4: 15,   6: 20,   7: 20,   9: 25,
+  10: 50,  11: 25,  13: 30,  14: 30,  16: 35,
+  17: 35,  18: 40,  19: 40,  20: 100,
+  22: 50,  24: 50,  25: 100, 27: 60,  29: 75,
+  30: 150, 31: 75,  33: 80,  34: 80,  35: 150,
+  36: 100, 37: 100, 39: 120, 40: 200,
+  41: 120, 42: 150, 43: 150, 44: 150, 45: 200,
+  46: 200, 47: 200, 48: 250, 49: 250, 50: 500,
+};
+
+// ── Difficulty Scaling (per 5 levels) ──
+export const DIFFICULTY_SCALING = {
+  scalingInterval: 5,
+  pusherSpeedMultiplier: 0.10,
+  eventFrequencyMultiplier: 0.15,
+  xpMultiplier: 0.05,
+  coinMultiplier: 0.08,
+};
+
+export function getDifficultyScale(level) {
+  const tier = Math.floor((level - 1) / 5);
+  return {
+    pusherSpeed: 1 + tier * DIFFICULTY_SCALING.pusherSpeedMultiplier,
+    eventFreq: Math.max(0.10, 1 - tier * DIFFICULTY_SCALING.eventFrequencyMultiplier),
+    xpMult: 1 + tier * DIFFICULTY_SCALING.xpMultiplier,
+    coinMult: 1 + tier * DIFFICULTY_SCALING.coinMultiplier,
+  };
+}
 
 // ══════════════════════════════════════
 // ── P3: Scene Definitions ──
@@ -216,6 +308,26 @@ export const SCENES = {
     id: 'underwater', label: 'Underwater',
     background: 0x0a2a4a, skyTop: 0x004488, skyBottom: 0x006688,
     hillColor: 0x225533, tableColor: 0x1a4a3a, wallColor: 0x2a3a4a,
+  },
+  starry_night: {
+    id: 'starry_night', label: '星空 Starry Night',
+    background: 0x0a0a2e, skyTop: 0x000022, skyBottom: 0x1a1a4e,
+    hillColor: 0x1a1a3a, tableColor: 0x1a2a3a, wallColor: 0x2a2a4a,
+  },
+  lava_castle: {
+    id: 'lava_castle', label: '岩漿城堡 Lava Castle',
+    background: 0x1a0500, skyTop: 0x440000, skyBottom: 0x220000,
+    hillColor: 0x3a1a0a, tableColor: 0x4a2a1a, wallColor: 0x3a2a2a,
+  },
+  rainbow_road: {
+    id: 'rainbow_road', label: '彩虹跑道 Rainbow Road',
+    background: 0x1a0a3a, skyTop: 0x4a0088, skyBottom: 0x0044aa,
+    hillColor: 0x3a2a5a, tableColor: 0x2a2a4a, wallColor: 0x4a3a6a,
+  },
+  space: {
+    id: 'space', label: '太空 Space',
+    background: 0x000005, skyTop: 0x000010, skyBottom: 0x000020,
+    hillColor: 0x111122, tableColor: 0x1a1a2a, wallColor: 0x222233,
   },
 };
 

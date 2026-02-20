@@ -122,6 +122,11 @@ export class GameEngine {
     this.isRunning = true;
     this.spawnInitialCoins();
     this.lastTime = performance.now();
+
+    // Apply difficulty scaling for current level
+    const scale = this.levelSystem.getDifficultyScale();
+    this.pusher.setSpeed(C.PUSHER_SPEED * scale.pusherSpeed);
+
     this.loop();
   }
 
@@ -220,7 +225,8 @@ export class GameEngine {
 
           const result = this.combo.onCoinCollected();
           const coinSizeConfig = C.COIN_SIZES[coin.size] || C.COIN_SIZES.small;
-          const scoreValue = Math.floor(coinSizeConfig.scoreValue * result.multiplier * this.scoreMultiplier);
+          const scale = this.levelSystem.getDifficultyScale();
+          const scoreValue = Math.floor(coinSizeConfig.scoreValue * result.multiplier * this.scoreMultiplier * scale.coinMult);
 
           // XP gain
           this.levelSystem.addXP(1);
@@ -499,15 +505,17 @@ export class GameEngine {
     this.haptic.frenzy();
     this.saveManager.setFrenzyTriggered();
 
-    // Speed up pusher during frenzy
+    // Speed up pusher during frenzy (2x on top of difficulty scaling)
+    const frenzyScale = this.levelSystem.getDifficultyScale();
     this.effectManager.addEffect({
       type: 'frenzy_speed',
       duration: dur,
       apply: (engine) => {
-        engine.pusher.setSpeed(C.PUSHER_SPEED * 2);
+        engine.pusher.setSpeed(C.PUSHER_SPEED * frenzyScale.pusherSpeed * 2);
       },
       remove: (engine) => {
-        engine.pusher.resetSpeed();
+        const curScale = engine.levelSystem.getDifficultyScale();
+        engine.pusher.setSpeed(C.PUSHER_SPEED * curScale.pusherSpeed);
       },
     }, this);
 
@@ -613,7 +621,9 @@ export class GameEngine {
   }
 
   _randomLakituDelay() {
-    return C.LAKITU_MIN_INTERVAL + Math.random() * (C.LAKITU_MAX_INTERVAL - C.LAKITU_MIN_INTERVAL);
+    const base = C.LAKITU_MIN_INTERVAL + Math.random() * (C.LAKITU_MAX_INTERVAL - C.LAKITU_MIN_INTERVAL);
+    const scale = this.levelSystem.getDifficultyScale();
+    return base / scale.eventFreq;
   }
 
   // ─── Bullet Bill event ───
@@ -685,7 +695,9 @@ export class GameEngine {
   }
 
   _randomBulletBillDelay() {
-    return C.BULLET_BILL_MIN_INTERVAL + Math.random() * (C.BULLET_BILL_MAX_INTERVAL - C.BULLET_BILL_MIN_INTERVAL);
+    const base = C.BULLET_BILL_MIN_INTERVAL + Math.random() * (C.BULLET_BILL_MAX_INTERVAL - C.BULLET_BILL_MIN_INTERVAL);
+    const scale = this.levelSystem.getDifficultyScale();
+    return base / scale.eventFreq;
   }
 
   // ─── Bob-omb countdown ───
@@ -799,9 +811,8 @@ export class GameEngine {
       this.haptic.coinDrop();
       this.saveManager.addCoinsDropped(1);
 
-      // Try to spawn a special item
-      const unlockedItems = this.levelSystem.getUnlockedItemTypes()
-        .filter(id => C.ITEM_TYPES[id]); // only actual item IDs
+      // Try to spawn a special item (respects spawnRate:0 needing _spawn unlock)
+      const unlockedItems = this.levelSystem.getSpawnableItemTypes();
       const totalObjects = this.coinManager.getCoinCount() + this.itemManager.getItemCount();
       const spawned = this.itemManager.trySpawnItem(unlockedItems, totalObjects);
       if (spawned) {

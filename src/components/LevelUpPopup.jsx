@@ -13,6 +13,20 @@ const UNLOCK_NAMES = {
   boss_mode: '魔王模式',
   underwater_scene: '水中場景',
   custom_pusher: '自訂推板',
+  bob_omb_spawn: '炸彈兵自然生成',
+  magnet_mushroom_spawn: '磁鐵蘑菇自然生成',
+  diamond_coin: '鑽石金幣',
+  giant_bob_omb: '巨型炸彈兵',
+  thwomp_event: '咚咚事件',
+  low_gravity_mode: '低重力模式',
+  dual_pusher: '雙推板',
+  boss_rush: '魔王連戰',
+  mega_frenzy: '超級狂熱',
+  golden_pusher: '黃金推板',
+  starry_night_scene: '星空場景',
+  lava_castle_scene: '岩漿城堡場景',
+  rainbow_road_scene: '彩虹跑道場景',
+  space_scene: '太空場景',
 };
 
 export function LevelUpPopup({ levelEvent }) {
@@ -24,7 +38,10 @@ export function LevelUpPopup({ levelEvent }) {
 
     setDisplay({
       level: levelEvent.newLevel,
-      unlocks: (levelEvent.unlockedItems || []).map(id => UNLOCK_NAMES[id] || id),
+      unlocks: (levelEvent.unlockedItems || [])
+        .filter(id => !id.startsWith('coin_reward_'))
+        .map(id => UNLOCK_NAMES[id] || id),
+      coinReward: levelEvent.coinReward || 0,
     });
     setVisible(true);
 
@@ -53,6 +70,13 @@ export function LevelUpPopup({ levelEvent }) {
         >
           等級 {display.level}
         </div>
+        {display.coinReward > 0 && (
+          <div className="mt-2 bg-black/60 rounded-lg px-3 py-1">
+            <div className="text-mario-yellow text-sm font-black">
+              +{display.coinReward} 金幣
+            </div>
+          </div>
+        )}
         {display.unlocks.length > 0 && (
           <div className="mt-2 bg-black/60 rounded-lg px-3 py-1">
             <div className="text-mario-green text-xs font-bold">解鎖：</div>

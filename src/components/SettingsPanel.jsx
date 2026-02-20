@@ -6,6 +6,10 @@ const SCENE_NAMES = {
   underground: '地下世界',
   castle: '城堡',
   underwater: '水中世界',
+  starry_night: '星空',
+  lava_castle: '岩漿城堡',
+  rainbow_road: '彩虹跑道',
+  space: '太空',
 };
 
 export function SettingsPanel({ visible, onClose, engineRef, currentScene, unlockedScenes, settings, onSettingsChange }) {

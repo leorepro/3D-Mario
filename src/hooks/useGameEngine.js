@@ -8,6 +8,7 @@ import {
   COIN_RECOVERY_MAX,
   COIN_SIZES,
 } from '../game/constants.js';
+import * as C from '../game/constants.js';
 
 export function useGameEngine(containerRef) {
   const engineRef = useRef(null);
@@ -139,6 +140,13 @@ export function useGameEngine(containerRef) {
       setLevelEvent({ ...data, _ts: Date.now() });
       engine.audio.playLevelUp();
       engine.haptic.levelUp();
+      // Award coin reward for leveling up
+      if (data.coinReward) {
+        setCoinBalance(prev => prev + data.coinReward);
+      }
+      // Update pusher speed for new difficulty level
+      const scale = engine.levelSystem.getDifficultyScale();
+      engine.pusher.setSpeed(C.PUSHER_SPEED * scale.pusherSpeed);
       // Update unlocked scenes
       setUnlockedScenes(engine.levelSystem.getUnlockedScenes());
       setCanBoss(engine.levelSystem.canBoss());
