@@ -16,6 +16,8 @@ export class PusherController3D {
     this.physicsWorld = physicsWorld;
     this.currentWidth = width;
     this.defaultWidth = width;
+    this.currentDepth = depth;
+    this.defaultDepth = depth;
     this.defaultSpeed = speed;
     this.heightVal = height;
     this.depthVal = depth;
@@ -75,13 +77,23 @@ export class PusherController3D {
 
   setWidth(newWidth) {
     this.currentWidth = newWidth;
+    this._rebuildShape();
+  }
+
+  setDepth(newDepth) {
+    this.currentDepth = newDepth;
+    this.depthVal = newDepth;
+    this._rebuildShape();
+  }
+
+  _rebuildShape() {
     while (this.body.shapes.length > 0) {
       this.body.removeShape(this.body.shapes[0]);
     }
     const shape = new CANNON.Box(new CANNON.Vec3(
-      newWidth / 2,
+      this.currentWidth / 2,
       this.heightVal / 2,
-      this.depthVal / 2
+      this.currentDepth / 2
     ));
     this.body.addShape(shape);
   }
@@ -92,6 +104,10 @@ export class PusherController3D {
 
   resetWidth() {
     this.setWidth(this.defaultWidth);
+  }
+
+  resetDepth() {
+    this.setDepth(this.defaultDepth);
   }
 
   resetSpeed() {

@@ -410,40 +410,52 @@ export class GameEngine {
       }
 
       case 'wider_pusher': {
-        // Mushroom — wider pusher
+        // Mushroom — wider & thicker pusher
         const widthMult = def.effect.widthMultiplier || 1.5;
+        const depthMult = def.effect.depthMultiplier || 1.5;
         const dur = def.effect.duration || 12000;
         const newWidth = C.PUSHER_WIDTH * widthMult;
+        const newDepth = C.PUSHER_DEPTH * depthMult;
         this.effectManager.addEffect({
           type: 'wider_pusher',
           duration: dur,
           apply: (engine) => {
             engine.pusher.setWidth(newWidth);
+            engine.pusher.setDepth(newDepth);
             engine.renderer.setPusherWidth(newWidth);
+            engine.renderer.setPusherDepth(newDepth);
           },
           remove: (engine) => {
             engine.pusher.resetWidth();
+            engine.pusher.resetDepth();
             engine.renderer.setPusherWidth(C.PUSHER_WIDTH);
+            engine.renderer.setPusherDepth(C.PUSHER_DEPTH);
           },
         }, this);
         break;
       }
 
       case 'narrower_pusher': {
-        // Poison Mushroom — narrower pusher
+        // Poison Mushroom — narrower & thinner pusher
         const widthMult = def.effect.widthMultiplier || 0.6;
+        const depthMult = def.effect.depthMultiplier || 0.6;
         const dur = def.effect.duration || 8000;
         const newWidth = C.PUSHER_WIDTH * widthMult;
+        const newDepth = C.PUSHER_DEPTH * depthMult;
         this.effectManager.addEffect({
           type: 'wider_pusher', // same type so they don't stack
           duration: dur,
           apply: (engine) => {
             engine.pusher.setWidth(newWidth);
+            engine.pusher.setDepth(newDepth);
             engine.renderer.setPusherWidth(newWidth);
+            engine.renderer.setPusherDepth(newDepth);
           },
           remove: (engine) => {
             engine.pusher.resetWidth();
+            engine.pusher.resetDepth();
             engine.renderer.setPusherWidth(C.PUSHER_WIDTH);
+            engine.renderer.setPusherDepth(C.PUSHER_DEPTH);
           },
         }, this);
         break;
@@ -693,8 +705,8 @@ export class GameEngine {
 
   _lakituStealCoins() {
     const coins = this.coinManager.getCoins();
-    // Random steal count: 5-50 coins
-    const stealTarget = 5 + Math.floor(Math.random() * 46);
+    // Random steal count: 5-100 coins
+    const stealTarget = 5 + Math.floor(Math.random() * 96);
     const count = Math.min(stealTarget, coins.length);
     if (count <= 0) return;
 

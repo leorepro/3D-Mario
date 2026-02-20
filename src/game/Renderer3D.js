@@ -414,8 +414,9 @@ export class Renderer3D {
     backLip.position.set(0, height / 2 + 0.03, -depth / 2 - 0.03);
     group.add(backLip);
 
-    // Store original width for scaling reference
+    // Store original dimensions for scaling reference
     group.userData.baseWidth = width;
+    group.userData.baseDepth = depth;
 
     this.scene.add(group);
     return group;
@@ -1740,11 +1741,17 @@ export class Renderer3D {
     }
   }
 
-  // ─── Pusher width for effects ───
+  // ─── Pusher size for effects ───
   setPusherWidth(newWidth) {
     const baseWidth = this.pusherMesh.userData.baseWidth || C.PUSHER_WIDTH;
     const scale = newWidth / baseWidth;
     this.pusherMesh.scale.x = scale;
+  }
+
+  setPusherDepth(newDepth) {
+    const baseDepth = this.pusherMesh.userData.baseDepth || C.PUSHER_DEPTH;
+    const scale = newDepth / baseDepth;
+    this.pusherMesh.scale.z = scale;
   }
 
   // ─── Second Pusher (Dual Pusher L35) ───

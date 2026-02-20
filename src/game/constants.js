@@ -28,16 +28,16 @@ export const COIN_SIZES = {
     radius: COIN_RADIUS,
     height: COIN_HEIGHT,
     mass: COIN_MASS,
-    dropCost: 1,
-    collectValue: 1,
+    dropCost: 2,
+    collectValue: 2,
     scoreValue: 1,
   },
   large: {
     radius: COIN_RADIUS * 1.5,  // 0.9
     height: COIN_HEIGHT * 1.5,  // 0.225
     mass: COIN_MASS * 2.25,     // 2.025 (1.5² scaling)
-    dropCost: 5,
-    collectValue: 5,
+    dropCost: 10,
+    collectValue: 10,
     scoreValue: 5,
   },
 };
@@ -80,7 +80,7 @@ export const INITIAL_COINS_ON_TABLE = 18;
 
 // ── Cooldown ──
 export const DROP_COOLDOWN_MS = 500;
-export const AUTO_DROP_INTERVAL_MS = 600;
+export const AUTO_DROP_INTERVAL_MS = 500;
 
 // ── Chain / Combo ──
 export const CHAIN_WINDOW_MS = 1500;
@@ -130,7 +130,7 @@ export const ITEM_TYPES = {
   mushroom: {
     id: 'mushroom', label: 'Super Mushroom', spawnRate: 0.04, mass: 0.6,
     physics: 'sphere', physicsRadius: 0.3, color: 0xe52521, minLevel: 3,
-    effect: { type: 'wider_pusher', widthMultiplier: 1.5, duration: 12000 },
+    effect: { type: 'wider_pusher', widthMultiplier: 1.5, depthMultiplier: 1.5, duration: 12000 },
   },
   coin_tower: {
     id: 'coin_tower', label: 'Coin Tower', spawnRate: 0.02, mass: 1.5,
@@ -150,7 +150,7 @@ export const ITEM_TYPES = {
   poison_mushroom: {
     id: 'poison_mushroom', label: 'Poison Mushroom', spawnRate: 0.02, mass: 0.6,
     physics: 'sphere', physicsRadius: 0.3, color: 0x800080, minLevel: 3,
-    effect: { type: 'narrower_pusher', widthMultiplier: 0.6, duration: 8000 },
+    effect: { type: 'narrower_pusher', widthMultiplier: 0.6, depthMultiplier: 0.6, duration: 8000 },
   },
   bob_omb: {
     id: 'bob_omb', label: 'Bob-omb', spawnRate: 0, mass: 1.2,
@@ -160,7 +160,7 @@ export const ITEM_TYPES = {
   magnet_mushroom: {
     id: 'magnet_mushroom', label: 'Magnet Mushroom', spawnRate: 0, mass: 0.6,
     physics: 'sphere', physicsRadius: 0.3, color: 0x4444ff, minLevel: 1,
-    effect: { type: 'magnet', duration: 10000 },
+    effect: { type: 'magnet', duration: 5000 },
   },
   coin_pipe: {
     id: 'coin_pipe', label: 'Coin Pipe', spawnRate: 0, mass: 2.0,
@@ -170,7 +170,7 @@ export const ITEM_TYPES = {
   diamond_coin: {
     id: 'diamond_coin', label: 'Diamond Coin', spawnRate: 0, mass: 0.5,
     physics: 'sphere', physicsRadius: 0.35, color: 0x00bfff, minLevel: 25,
-    effect: { type: 'diamond_score', scoreValue: 50 },
+    effect: { type: 'diamond_score', scoreValue: 100 },
   },
   giant_bob_omb: {
     id: 'giant_bob_omb', label: 'Giant Bob-omb', spawnRate: 0, mass: 3.0,
@@ -187,7 +187,7 @@ export const BOBOMB_SCATTER_FORCE = 6;
 
 // ── Giant Bob-omb ──
 export const GIANT_BOBOMB_FUSE_MS = 7000;
-export const GIANT_BOBOMB_BLAST_RADIUS = 10.0;
+export const GIANT_BOBOMB_BLAST_RADIUS = 15.0;
 export const GIANT_BOBOMB_PUSH_FORCE = 12;
 export const GIANT_BOBOMB_SCATTER_FORCE = 10;
 
