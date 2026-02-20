@@ -29,8 +29,8 @@ function useResponsiveScale() {
   const calcScale = useCallback(() => {
     const sw = window.innerWidth;
     const sh = window.innerHeight;
-    // Estimate total game height: HUD (~60) + canvas (VIEWPORT_HEIGHT), ActionBar overlaps canvas
-    const totalH = VIEWPORT_HEIGHT + 60;
+    // Estimate total game height: HUD (~60) + canvas (VIEWPORT_HEIGHT) + ActionBar (~42) + 2px gap
+    const totalH = VIEWPORT_HEIGHT + 104;
     const sx = sw / VIEWPORT_WIDTH;
     const sy = sh / totalH;
     setScale(Math.min(sx, sy, 1)); // never scale up beyond 1
@@ -131,29 +131,30 @@ export function GameScreen() {
             bossRushWave={bossRushWave}
           />
 
-          {/* ActionBar overlaps canvas bottom with 2px gap */}
-          <div className="absolute left-0 right-0" style={{ bottom: 2 }}>
-            <ActionBar
-              coinBalance={coinBalance}
-              onDrop={dropCoin}
-              autoDropping={autoDropping}
-              onToggleAutoDrop={toggleAutoDrop}
-              audioMode={audioMode}
-              onToggleAudio={toggleAudio}
-              onOpenSettings={() => setSettingsVisible(true)}
-              onOpenLeaderboard={() => setLeaderboardVisible(true)}
-              onOpenRules={() => setRulesVisible(true)}
-              canBoss={canBoss}
-              onStartBoss={startBoss}
-              bossActive={bossActive}
-              canBossRush={canBossRush}
-              onStartBossRush={startBossRush}
-              score={score}
-              level={level}
-              coinSize={coinSize}
-              onToggleCoinSize={setCoinSize}
-            />
-          </div>
+        </div>
+
+        {/* ActionBar below canvas with 2px gap */}
+        <div style={{ marginTop: 2 }}>
+          <ActionBar
+            coinBalance={coinBalance}
+            onDrop={dropCoin}
+            autoDropping={autoDropping}
+            onToggleAutoDrop={toggleAutoDrop}
+            audioMode={audioMode}
+            onToggleAudio={toggleAudio}
+            onOpenSettings={() => setSettingsVisible(true)}
+            onOpenLeaderboard={() => setLeaderboardVisible(true)}
+            onOpenRules={() => setRulesVisible(true)}
+            canBoss={canBoss}
+            onStartBoss={startBoss}
+            bossActive={bossActive}
+            canBossRush={canBossRush}
+            onStartBossRush={startBossRush}
+            score={score}
+            level={level}
+            coinSize={coinSize}
+            onToggleCoinSize={setCoinSize}
+          />
         </div>
 
         {/* Modal overlays */}
