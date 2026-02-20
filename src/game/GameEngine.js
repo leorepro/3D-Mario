@@ -615,14 +615,18 @@ export class GameEngine {
     const force = isReward ? C.BOBOMB_PUSH_FORCE : C.BOBOMB_SCATTER_FORCE;
     const particleColor = isReward ? 0xffc107 : 0xff4500;
 
-    // Explosion particles
+    // Explosion particles (large burst)
     this.renderer.emitParticles(
       { x: pos.x, y: pos.y, z: pos.z },
-      { count: 25, color: particleColor, speed: 5 }
+      { count: 50, color: particleColor, speed: 8 }
     );
     this.renderer.emitParticles(
       { x: pos.x, y: pos.y + 0.5, z: pos.z },
-      { count: 15, color: 0xff0000, speed: 4 }
+      { count: 30, color: 0xff0000, speed: 6 }
+    );
+    this.renderer.emitParticles(
+      { x: pos.x, y: pos.y + 1, z: pos.z },
+      { count: 20, color: 0xff6600, speed: 7 }
     );
 
     this.audio.playBobOmbExplode();

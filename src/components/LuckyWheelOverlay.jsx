@@ -128,7 +128,7 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
                   style={{
                     left: `${x}px`,
                     top: `${y}px`,
-                    fontSize: '9px',
+                    fontSize: '13px',
                     transform: `translate(-50%, -50%) rotate(${textRotation}deg)`,
                     textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)',
                     whiteSpace: 'nowrap',

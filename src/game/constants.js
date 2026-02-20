@@ -157,7 +157,7 @@ export const ITEM_TYPES = {
 
 // ── Bob-omb ──
 export const BOBOMB_FUSE_MS = 5000;
-export const BOBOMB_BLAST_RADIUS = 3.0;
+export const BOBOMB_BLAST_RADIUS = 6.0;
 export const BOBOMB_PUSH_FORCE = 8;
 export const BOBOMB_SCATTER_FORCE = 6;
 
