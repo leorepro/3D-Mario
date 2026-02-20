@@ -113,10 +113,12 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
               ).join(', ')})`,
             }}
           >
-            {/* Slot labels — radial text along each slice */}
+            {/* Slot labels — radial text from center outward */}
             {slots.map((slot, i) => {
               const sliceAngle = 360 / slots.length;
-              const midAngle = i * sliceAngle + sliceAngle / 2;
+              // conic-gradient starts at 12 o'clock (top), CSS rotate(0) points right (3 o'clock)
+              // offset by -90° to align
+              const cssAngle = i * sliceAngle + sliceAngle / 2 - 90;
               const label = PRIZE_LABELS_ZH[slot.id] || slot.label;
 
               return (
@@ -126,22 +128,21 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
                   style={{
                     left: '120px',
                     top: '120px',
-                    transform: `rotate(${midAngle}deg)`,
+                    transform: `rotate(${cssAngle}deg)`,
                     transformOrigin: '0 0',
                   }}
                 >
                   <div
                     style={{
                       position: 'absolute',
-                      left: '20px',
-                      top: '-7px',
+                      left: '25px',
+                      top: '-6px',
                       fontSize: '11px',
-                      letterSpacing: '1px',
                       textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.5)',
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {label.split('').join(' ')}
+                    {label}
                   </div>
                 </div>
               );

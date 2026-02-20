@@ -3,7 +3,7 @@ import { LuckyWheel, WHEEL_PRIZES, WHEEL_TRIGGER_INTERVAL } from '../LuckyWheel.
 
 describe('LuckyWheel', () => {
   it('should have correct trigger interval', () => {
-    expect(WHEEL_TRIGGER_INTERVAL).toBe(30);
+    expect(WHEEL_TRIGGER_INTERVAL).toBe(80);
   });
 
   it('should have prizes with required fields', () => {

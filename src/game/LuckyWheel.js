@@ -14,7 +14,7 @@ export const WHEEL_PRIZES = [
   { id: 'giant_bob_omb',  label: 'Giant Bob-omb',   weight: 4,  reward: { spawnItem: 'giant_bob_omb' }, color: '#111111' },
 ];
 
-export const WHEEL_TRIGGER_INTERVAL = 30; // Every 30 coins dropped
+export const WHEEL_TRIGGER_INTERVAL = 80; // Every 80 coins dropped
 
 export class LuckyWheel {
   spin() {

@@ -13,6 +13,7 @@ import { SaveManager } from './SaveManager.js';
 import { LevelSystem } from './LevelSystem.js';
 import { AchievementSystem } from './AchievementSystem.js';
 import { QualityManager } from './QualityManager.js';
+import { WHEEL_TRIGGER_INTERVAL } from './LuckyWheel.js';
 import * as C from './constants.js';
 
 export class GameEngine {
@@ -1232,7 +1233,7 @@ export class GameEngine {
 
       // Lucky wheel tracking
       this.coinsDroppedSinceWheel++;
-      if (this.coinsDroppedSinceWheel >= 30) {
+      if (this.coinsDroppedSinceWheel >= WHEEL_TRIGGER_INTERVAL) {
         this.coinsDroppedSinceWheel = 0;
         this.callbacks.onWheelTrigger?.();
       }
