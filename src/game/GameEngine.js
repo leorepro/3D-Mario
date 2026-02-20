@@ -462,13 +462,11 @@ export class GameEngine {
       }
 
       case 'burst_coins': {
-        // Coin Tower — burst coins onto table
+        // Coin Tower — drop a pre-formed cylinder stack of coins
         const count = def.effect.count || 10;
+        const stackX = (Math.random() - 0.5) * (C.TABLE_WIDTH - 2);
         for (let i = 0; i < count; i++) {
-          setTimeout(() => {
-            const x = (Math.random() - 0.5) * (C.TABLE_WIDTH - 1);
-            this.coinManager.spawnCoin(x, C.DROP_Y, C.DROP_Z + Math.random());
-          }, i * 100);
+          this.coinManager.spawnCoin(stackX, C.DROP_Y + i * C.COIN_HEIGHT, C.DROP_Z);
         }
         this.callbacks.onBurstCoins?.(count);
         break;

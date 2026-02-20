@@ -68,8 +68,8 @@ export function LuckyWheelOverlay({ visible, onClose, onPrize }) {
 
     const prize = wheel.spin();
     const sliceAngle = 360 / prize.totalSlots;
-    // -90 offset: pointer is on the right (3 o'clock) instead of top (12 o'clock)
-    const targetAngle = 360 * 5 + (270 - prize.slotIndex * sliceAngle - sliceAngle / 2);
+    // +90 offset: pointer is on the right (3 o'clock) instead of top (12 o'clock)
+    const targetAngle = 360 * 5 + (450 - prize.slotIndex * sliceAngle - sliceAngle / 2);
 
     // Use requestAnimationFrame to ensure the reset position renders first
     requestAnimationFrame(() => {
